@@ -6,13 +6,13 @@ mod raw_ast;
 use crate::error::print_error;
 use crate::formatter::{FormatStyle, Formatter};
 use crate::raw_ast::parse_ast;
-use clap::{command, Arg};
+use clap::{Arg, command};
 use pest::Parser;
 use pest_derive::Parser;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::{env, fs};
 
 #[derive(Parser)]
@@ -20,6 +20,7 @@ use std::{env, fs};
 struct LC3Parser;
 
 static FORMATTED_COUNT: AtomicUsize = AtomicUsize::new(0);
+static VERBOSE_MODE: AtomicBool = AtomicBool::new(false);
 
 fn main() -> anyhow::Result<()> {
     let (style, check_mode, file_path) = get_from_cli();
@@ -67,13 +68,17 @@ fn format_file(style: &FormatStyle, filename: &Path, file_content: &str) {
             match fs::write(filename, formatter.contents()) {
                 Ok(_) => {
                     FORMATTED_COUNT.fetch_add(1, Ordering::Relaxed);
-                    println!("Formatted {}.", filename.display());
+                    if VERBOSE_MODE.load(Ordering::Relaxed) {
+                        println!("Formatted {}.", filename.display());
+                    }
                 }
                 Err(err) => {
-                    eprintln!(
-                        "Failed to write file {}, because {err}.",
-                        filename.display()
-                    );
+                    if VERBOSE_MODE.load(Ordering::Relaxed) {
+                        eprintln!(
+                            "Failed to write file {}, because {err}.",
+                            filename.display()
+                        );
+                    }
                 }
             }
         }
@@ -134,11 +139,17 @@ fn get_from_cli() -> (FormatStyle, bool, Vec<PathBuf>) {
             Arg::new("print-config")
                 .long("print-config")
                 .help(r#"Dumps a default or minimal config to stdout"#)
-                .action(clap::ArgAction::SetTrue)
-                .required(false),
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("verbose")
+                .long("verbose")
+                .help(r#"Print verbose output"#)
+                .action(clap::ArgAction::SetTrue),
         )
         .get_matches();
 
+    VERBOSE_MODE.store(matches.get_flag("verbose"), Ordering::Relaxed);
     let style = read_style(
         matches
             .get_one::<String>("config-path")
@@ -232,11 +243,13 @@ fn read_filepath(filepath: PathBuf) -> Vec<PathBuf> {
                         None => false,
                         Some(ext) => {
                             if ext != CONFIG_FILENAME_EXTENSION {
-                                eprintln!(
-                                    "Filename has to be {}, but found {}!",
-                                    CONFIG_FILENAME_EXTENSION,
-                                    ext.to_string_lossy().as_ref()
-                                );
+                                if VERBOSE_MODE.load(Ordering::Relaxed) {
+                                    eprintln!(
+                                        "Filename has to be {}, but found {}!",
+                                        CONFIG_FILENAME_EXTENSION,
+                                        ext.to_string_lossy().as_ref()
+                                    );
+                                }
                                 false
                             } else {
                                 true
@@ -258,11 +271,13 @@ fn read_filepath(filepath: PathBuf) -> Vec<PathBuf> {
                 }
                 Some(ext) => {
                     if ext != CONFIG_FILENAME_EXTENSION {
-                        eprintln!(
-                            "Filename has to be .{}, but found .{}!",
-                            CONFIG_FILENAME_EXTENSION,
-                            ext.to_string_lossy().as_ref()
-                        );
+                        if VERBOSE_MODE.load(Ordering::Relaxed) {
+                            eprintln!(
+                                "Filename has to be .{}, but found .{}!",
+                                CONFIG_FILENAME_EXTENSION,
+                                ext.to_string_lossy().as_ref()
+                            );
+                        }
                         vec![]
                     } else {
                         vec![filepath]
