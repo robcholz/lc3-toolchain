@@ -212,8 +212,8 @@ fn get_from_cli() -> (FormatStyle, Vec<PathBuf>) {
             Arg::new("config-path")
                 .long("config-path")
                 .help(format!(
-                    r#"Path for the {} configuration file. Recursively searches
-                the given path for the rustfmt.toml config file. If not
+                    r#"Path for the configuration file. Recursively searches
+                the given path for the {} config file. If not
                 found, reverts to the input file path."#,
                     CONFIG_FILENAME
                 ))

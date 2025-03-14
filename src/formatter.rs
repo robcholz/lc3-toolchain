@@ -11,6 +11,7 @@ trait FormattedDisplay {
 }
 
 #[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct FormatStyle {
     pub indent_directive: u8,              // horizontal // done
     pub indent_instruction: u8,            // horizontal // done

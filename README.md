@@ -7,25 +7,19 @@ LC-3 Assembly Toolchain, designed for ECE109 Spring 2025.
 
 ## Overview
 
-`lc3-toolchain` is a code formatting tool specifically built for LC-3 assembly language. It provides automatic formatting to ensure consistent code style across your LC-3 assembly projects, making code more readable and maintainable.
+`lc3-toolchain` contains a code formatting tool specifically built for LC-3 assembly language.
+It provides automatic formatting to ensure consistent code style across your LC-3 assembly projects, making code more
+readable and maintainable.
 
 ## Installation
 
+Download from release.
+
+Or:
 Cargo
+
 ```bash
 cargo install lc3-toolchain
-```
-
-Build from git
-```bash
-# Clone the repository
-git clone https://github.com/finnsheng/lc3-toolchain.git
-
-# Build the project
-cd lc3-toolchain
-cargo build --release
-
-# Optional: Add to your PATH
 ```
 
 ## Usage
@@ -40,57 +34,34 @@ This will format the specified LC-3 assembly file or all assembly files in the g
 
 ### Command-line Options
 
-```
-lc3fmt 0.1.1
-Author: Finn Sheng@NCState Class of 2028
-Format LC-3 Assembly Code, designed for ECE109 Spring 2025
+#### `-c, --check`
 
-USAGE:
-    lc3fmt [OPTIONS] <file>
+Run in 'check' mode. Exits with 0 if input is formatted correctly.
+Exits with 1 and prints a diff if formatting is required.
 
-ARGS:
-    <file>    Relative path to the file or directory containing the files to format
+Validates files for proper formatting without making changes.
+Useful for CI/CD pipelines or pre-commit hooks to ensure code style compliance.
+Returns a non-zero exit code if any files need formatting.
 
-OPTIONS:
-    -c, --check                Run in 'check' mode. Exits with 0 if input is formatted correctly.
-                               Exits with 1 and prints a diff if formatting is required.
-    --config-path <path>       Path for the rustfmt.toml configuration file. Recursively searches
-                               the given path for the rustfmt.toml config file. If not found,
-                               reverts to the input file path.
-    --print-config             Dumps a default or minimal config to stdout
-    --verbose                  Print verbose output
-    -h, --help                 Print help information
-```
+<img src="doc/check_mode.png" alt="Description" width="500">
 
-### Examples
+#### `--config-path <path>`
 
-Format a single file:
-```bash
-lc3fmt program.asm
-```
+Specifies a custom location for the configuration file. The tool will search for a `lc3-format.toml` file starting from
+this path and moving up through parent directories. The configuration file controls formatting rules like indentation
+style, comment alignment, and label positioning.
 
-Check if a file is properly formatted without modifying it:
-```bash
-lc3fmt --check program.asm
-```
+#### `--print-config`
 
-Format all LC-3 assembly files in a directory:
-```bash
-lc3fmt ./src/
-```
+Outputs the current configuration settings to standard output. Helpful for creating your own custom configuration file
+by using this output as a starting point.
 
-Print the default configuration:
-```bash
-lc3fmt --print-config
-```
+<img src="doc/print_config.png" alt="Description" width="500">
 
-## Configuration
+#### `--verbose`
 
-`lc3fmt` uses a configuration file similar to `rustfmt`. You can specify a custom configuration file using the `--config-path` option.
-
-## For ECE109 Students
-
-This tool was designed specifically for ECE109 (Spring 2025) at NC State to help you maintain clean and consistent LC-3 assembly code for your assignments and projects.
+Enables detailed output during the formatting process. Shows information about each file being processed, and any issues
+encountered.
 
 ## Contributing
 
@@ -99,8 +70,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 GPL-v3
-
-## Acknowledgments
-
-- Thanks to the ECE109 Spring 2025 class at NC State University
-- Inspired by `rustfmt` and other code formatting tools
