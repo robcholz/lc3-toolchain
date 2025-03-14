@@ -1,48 +1,60 @@
 name: Release
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
       - 'v*.*.*'
 
 jobs:
-  release:
-    name: Release binaries
+  create-release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: taiki-e/create-gh-release-action@v1
         with:
-          toolchain: stable
-          target: x86_64-unknown-linux-musl, x86_64-apple-darwin, aarch64-apple-darwin, x86_64-pc-windows-gnu, aarch64-unknown-linux-gnu
+          # (required) GitHub token for creating GitHub Releases.
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build release binaries
-        run: |
-          cargo build --release --target x86_64-unknown-linux-musl
-          cargo build --release --target x86_64-apple-darwin
-          cargo build --release --target aarch64-apple-darwin
-          cargo build --release --target x86_64-pc-windows-gnu
-          cargo build --release --target aarch64-unknown-linux-gnu
-
-      - name: Package binaries
-        run: |
-          mkdir release
-          cp target/x86_64-unknown-linux-musl/release/lc3fmt release/lc3fmt-x86_64-unknown-linux-musl
-          cp target/x86_64-apple-darwin/release/lc3fmt release/lc3fmt-x86_64-apple-darwin
-          cp target/aarch64-apple-darwin/release/lc3fmt release/lc3fmt-aarch64-apple-darwin
-          cp target/x86_64-pc-windows-gnu/release/lc3fmt.exe release/lc3fmt-x86_64-pc-windows-gnu.exe
-          cp target/aarch64-unknown-linux-gnu/release/lc3fmt release/lc3fmt-aarch64-unknown-linux-gnu
-
-      - name: Create release archive
-        run: |
-          tar czvf release.tar.gz -C release .
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v1
+  upload-assets:
+    needs: create-release
+    strategy:
+      max-parallel: 1
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          #- target: aarch64-unknown-linux-gnu
+          #  os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: universal-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        continue-on-error: false
         with:
-          files: release.tar.gz
-          generate_release_notes: true
-          
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
+          # Note that glob pattern is not supported yet.
+          bin: HardwareUploader
+          tar: unix
+          zip: windows
+          # (optional) Target triple, default is host triple.
+          target: ${{ matrix.target }}
+          # (required) GitHub token for uploading assets to GitHub Releases.
+          token: ${{ secrets.GITHUB_TOKEN }}
