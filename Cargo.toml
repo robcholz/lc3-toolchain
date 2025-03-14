@@ -1,6 +1,6 @@
 [package]
 name = "lc3fmt"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Format LC-3 Assembly Code, designed for ECE109 Spring 2025"
 authors = ["Finn Sheng@NCState Class of 2028"]
