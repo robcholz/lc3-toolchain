@@ -1,9 +1,13 @@
 [package]
-name = "lc3fmt"
+name = "lc3-toolchain"
 version = "0.1.1"
 edition = "2024"
 description = "Format LC-3 Assembly Code, designed for ECE109 Spring 2025"
 authors = ["Finn Sheng@NCState Class of 2028"]
+repository = "https://github.com/robcholz/lc3-toolchain"
+license = "GPL-3"
+categories = ["command-line-utilities"]
+keywords = ["cli", "tool"]
 
 [dependencies]
 clap = { version = "4.5.32", features = ["cargo", "color"] } # cli

@@ -51,7 +51,7 @@ jobs:
         with:
           # (required) Comma-separated list of binary names (non-extension portion of filename) to build and upload.
           # Note that glob pattern is not supported yet.
-          bin: lc3fmt
+          bin: lc3-toolchain
           tar: unix
           zip: windows
           # (optional) Target triple, default is host triple.
