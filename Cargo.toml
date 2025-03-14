@@ -1,8 +1,8 @@
 [package]
 name = "lc3-toolchain"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
-description = "Format LC-3 Assembly Code, designed for ECE109 Spring 2025"
+description = "Toolchain for LC-3 Assembly Code, designed for ECE109 Spring 2025"
 authors = ["Finn Sheng@NCState Class of 2028"]
 repository = "https://github.com/robcholz/lc3-toolchain"
 license = "GPL-3.0-only"
