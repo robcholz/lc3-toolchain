@@ -1,0 +1,97 @@
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+Comment = @{ ";" ~ (!"\n" ~ ANY)* }
+
+Program = { SOI ~ ((Instruction | Directive | Comment)|(Label ~ (Instruction | Directive | Comment)))* ~ EOI }
+
+Label = @{ Ident ~ ":"? }
+LabelReference = @{ Ident }
+Register = @{ "R" ~ ('0'..'7') }
+Ident = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_")* }
+
+Instruction = { Add | And | Not | Ld | Ldi | Ldr | Lea | St | Sti | Str |
+    Br | Jmp | Jsr | Jsrr | Ret | Halt |
+    Put | Puts | Get | Getc | Out | In | Trap | Nop }
+
+// Arithmetic and Logical Instructions
+Add = { AddInstruction ~ Register ~ ","? ~ Register ~ ","? ~ (Register | Immediate) }
+And = { AndInstruction ~ Register ~ ","? ~ Register ~ ","? ~ (Register | Immediate) }
+Not = { NotInstruction ~ Register ~ ","? ~ Register }
+
+// Load and Store Instructions
+Ld = { LdInstruction ~ Register ~ ","? ~ LabelReference }
+Ldi = { LdiInstruction ~ Register ~ ","? ~ LabelReference }
+Ldr = { LdrInstruction ~ Register ~ ","? ~ Register ~ ","? ~ Immediate }
+Lea = { LeaInstruction ~ Register ~ ","? ~ LabelReference }
+St = { StInstruction ~ Register ~ ","? ~ LabelReference }
+Sti = { StiInstruction ~ Register ~ ","? ~ LabelReference }
+Str = { StrInstruction ~ Register ~ ","? ~ Register ~ ","? ~ Immediate }
+
+// Branching Instructions
+Br = { BrInstruction ~ LabelReference }
+Jmp = { JmpInstruction ~ Register }
+Jsr = { JsrInstruction ~ LabelReference }
+Jsrr = { JsrrInstruction ~ Register }
+
+// Control Instructions
+Nop = { NopInstruction }
+Ret = { RetInstruction }
+Halt = { HaltInstruction }
+
+// Input/Output Instructions
+Put = { PutInstruction }
+Puts = { PutsInstruction }
+Get = { GetInstruction }
+Getc = { GetcInstruction }
+Out = { OutInstruction }
+In = { InInstruction }
+
+// TRAP Instructions
+Trap = { TrapInstruction ~ HexAddress }
+
+// Separate instruction keywords from AST
+AddInstruction = { ^"ADD" }
+AndInstruction = { ^"AND" }
+NotInstruction = { ^"NOT" }
+LdInstruction = { ^"LD" }
+LdiInstruction = { ^"LDI" }
+LdrInstruction = { ^"LDR" }
+LeaInstruction = { ^"LEA" }
+StInstruction = { ^"ST" }
+StiInstruction = { ^"STI" }
+StrInstruction = { ^"STR" }
+BrInstruction = { (^"BRnzp") | (^"BRn") | (^"BRz") | (^"BRp") | (^"BRnz") | (^"BRzp") | (^"BRnp") }
+JmpInstruction = { ^"JMP" }
+JsrInstruction = { ^"JSR" }
+JsrrInstruction = { ^"JSRR" }
+NopInstruction = { ^"NOP" }
+RetInstruction = { ^"RET" }
+HaltInstruction = { ^"HALT" }
+PutInstruction = { ^"PUT" }
+PutsInstruction = { ^"PUTS" }
+GetInstruction = { ^"GET" }
+GetcInstruction = { ^"GETC" }
+OutInstruction = { ^"OUT" }
+InInstruction = { ^"IN" }
+TrapInstruction = { ^"TRAP" }
+
+// Literals
+HexAddress = @{ ^"x" ~ ASCII_HEX_DIGIT{1,4} }
+HexValue = @{ ^"x" ~ ASCII_HEX_DIGIT+ }
+DecValue = @{ "#"? ~ ("+"|"-")? ~ ASCII_DIGIT+ }
+Immediate = @{ HexValue | DecValue }
+StringLiteral = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+// Directives
+Directive = { STRINGZ | ORIG | FILL | END | BLKW }
+ORIG = { OrigDirective ~ HexAddress }
+FILL = { FillDirective ~ Immediate }
+END = { EndDirective }
+BLKW = { BlkwDirective ~ Immediate }
+STRINGZ = { StringzDirective ~ StringLiteral }
+
+// separate directive from ast
+OrigDirective = {^".ORIG"}
+FillDirective = {^".FILL"}
+EndDirective = {^".END"}
+BlkwDirective = {^".BLKW"}
+StringzDirective = {^".STRINGZ"}

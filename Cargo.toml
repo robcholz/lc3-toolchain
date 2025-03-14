@@ -1,0 +1,24 @@
+[package]
+name = "lc3fmt"
+version = "0.1.0"
+edition = "2024"
+description = "Format LC-3 Assembly Code, designed for ECE109 Spring 2025"
+authors = ["Finn Sheng@NCState Class of 2028"]
+
+[dependencies]
+clap = { version = "4.5.31", features = ["cargo"] } # cli
+codespan-reporting = "0.11.1" # report errors
+similar = "2.7.0" # compare the differences
+serde = { version = "1.0.219", features = ["derive"] }
+toml = "0.8.20" # parallelize
+pest = "2.7.15"
+pest_derive = "2.7.15"
+getset = "0.1.5"
+either = "1.15.0"
+itertools = "0.14.0"
+anyhow = "1.0.97"
+
+
+[[bin]]
+name = "lc3fmt"
+path = "src/fmt.rs"

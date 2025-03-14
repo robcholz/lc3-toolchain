@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Release binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-unknown-linux-musl, x86_64-apple-darwin, aarch64-apple-darwin, x86_64-pc-windows-gnu, aarch64-unknown-linux-gnu
+
+      - name: Build release binaries
+        run: |
+          cargo build --release --target x86_64-unknown-linux-musl
+          cargo build --release --target x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-pc-windows-gnu
+          cargo build --release --target aarch64-unknown-linux-gnu
+
+      - name: Package binaries
+        run: |
+          mkdir release
+          cp target/x86_64-unknown-linux-musl/release/lc3fmt release/lc3fmt-x86_64-unknown-linux-musl
+          cp target/x86_64-apple-darwin/release/lc3fmt release/lc3fmt-x86_64-apple-darwin
+          cp target/aarch64-apple-darwin/release/lc3fmt release/lc3fmt-aarch64-apple-darwin
+          cp target/x86_64-pc-windows-gnu/release/lc3fmt.exe release/lc3fmt-x86_64-pc-windows-gnu.exe
+          cp target/aarch64-unknown-linux-gnu/release/lc3fmt release/lc3fmt-aarch64-unknown-linux-gnu
+
+      - name: Create release archive
+        run: |
+          tar czvf release.tar.gz -C release .
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release.tar.gz
+          generate_release_notes: true
+          
