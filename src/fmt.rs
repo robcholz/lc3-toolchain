@@ -278,21 +278,21 @@ pub struct ConfigFormatStyle {
     pub space_from_start_end_block: Option<u8>,
 }
 
-fn read_style(filepath: Option<PathBuf>) -> FormatStyle {
-    let filepath: Option<PathBuf> = match filepath {
+fn read_style(filepath_opt: Option<PathBuf>) -> FormatStyle {
+    let filepath: Option<PathBuf> = match filepath_opt.as_ref() {
         // read the current one
         None => match env::current_dir() {
             Ok(dir) => Some(dir.join(CONFIG_FILENAME)),
             Err(_) => None,
         },
-        Some(path) => Some(path),
+        Some(path) => Some(path.clone()),
     };
 
     if filepath.is_none() {
         return DEFAULT_STYLE;
     }
 
-    let path = filepath.unwrap();
+    let path = filepath.as_ref().unwrap();
 
     match fs::read_to_string(&path) {
         Ok(content) => match toml::from_str::<Config>(&content) {
@@ -306,10 +306,12 @@ fn read_style(filepath: Option<PathBuf>) -> FormatStyle {
             }
         },
         Err(err) => {
-            eprintln!(
-                "Cannot open {}! {}, fallback to the default settings",
-                CONFIG_FILENAME, err
-            );
+            if filepath_opt.is_some() {
+                eprintln!(
+                    "Cannot open {}! {}, fallback to the default settings",
+                    CONFIG_FILENAME, err
+                );
+            }
             DEFAULT_STYLE
         }
     }
