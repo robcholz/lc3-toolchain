@@ -1,9 +1,0 @@
-# lc3fmt
-
-## Pass
-
-## Formatter
-Tokenization->Parsing->Formatting
-
-## Analyzer
-Tokenization->Parsing->Easy Semantics Rule Check->...
