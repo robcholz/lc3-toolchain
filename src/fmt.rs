@@ -6,7 +6,7 @@ mod raw_ast;
 use crate::error::print_error;
 use crate::formatter::{FormatStyle, Formatter};
 use crate::raw_ast::parse_ast;
-use clap::{Arg, ColorChoice, command};
+use clap::{Arg, command};
 use console::{Style, style};
 use pest::Parser;
 use pest_derive::Parser;
