@@ -1,22 +1,22 @@
-# lc3fmt
+# lc3-toolchain
 
 ![Version](https://img.shields.io/badge/version-0.1.1-blue)
 ![Edition](https://img.shields.io/badge/edition-2024-orange)
 
-Format LC-3 Assembly Code, designed for ECE109 Spring 2025.
+LC-3 Assembly Toolchain, designed for ECE109 Spring 2025.
 
 ## Overview
 
-`lc3fmt` is a code formatting tool specifically built for LC-3 assembly language. It provides automatic formatting to ensure consistent code style across your LC-3 assembly projects, making code more readable and maintainable.
+`lc3-toolchain` is a code formatting tool specifically built for LC-3 assembly language. It provides automatic formatting to ensure consistent code style across your LC-3 assembly projects, making code more readable and maintainable.
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/finnsheng/lc3fmt.git
+git clone https://github.com/finnsheng/lc3-toolchain.git
 
 # Build the project
-cd lc3fmt
+cd lc3-toolchain
 cargo build --release
 
 # Optional: Add to your PATH
