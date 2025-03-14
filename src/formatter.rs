@@ -10,16 +10,16 @@ trait FormattedDisplay {
     fn formatted_display(&self, style: &FormatStyle) -> (Vec<String>, String, Option<String>);
 }
 
-#[derive(Default, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
 pub struct FormatStyle {
-    pub directive_indent: u8,                // horizontal // done
-    pub instruction_indent: u8,              // horizontal // done
-    pub label_indent: u8,                    // horizontal // done
-    pub min_comment_distance_from_block: u8, // horizontal // done
-    pub space_block_to_comment: u8,          // vertical //done
-    pub space_comment_stick_to_body: u8,     // vertical //done
-    pub space_from_label_block: u8,          // vertical //done
-    pub space_from_start_end_block: u8,      // vertical  // done
+    pub indent_directive: u8,              // horizontal // done
+    pub indent_instruction: u8,            // horizontal // done
+    pub indent_label: u8,                  // horizontal // done
+    pub indent_min_comment_from_block: u8, // horizontal // done
+    pub space_block_to_comment: u8,        // vertical //done
+    pub space_comment_stick_to_body: u8,   // vertical //done
+    pub space_from_label_block: u8,        // vertical //done
+    pub space_from_start_end_block: u8,    // vertical  // done
 }
 
 pub struct Formatter<'a> {
@@ -49,7 +49,7 @@ impl<'a> Formatter<'a> {
         }
 
         let comment_start_column = lines.iter().map(|e| e.1.len()).max().unwrap_or(0)
-            + (self.style.min_comment_distance_from_block as usize);
+            + (self.style.indent_min_comment_from_block as usize);
 
         for (labels, body, comment, space) in lines.into_iter() {
             let missing_indent = comment_start_column - body.len();
@@ -193,14 +193,14 @@ impl FormattedDisplay for FormatterProgramItem {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
-                    labels.is_empty().then_some(0).unwrap_or(style.label_indent),
+                    labels.is_empty().then_some(0).unwrap_or(style.indent_label),
                 );
                 let labels = labels
                     .into_iter()
                     .map(|l| format!("{label_indent}{}", print_label(l)))
                     .collect();
                 let mut instruction_indent = "".to_owned();
-                add_indent(&mut instruction_indent, style.instruction_indent);
+                add_indent(&mut instruction_indent, style.indent_instruction);
                 let comment = comment.as_ref().map_or(None, |c| Some(print_comment(c)));
                 (
                     labels,
@@ -212,7 +212,7 @@ impl FormattedDisplay for FormatterProgramItem {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
-                    labels.is_empty().then_some(0).unwrap_or(style.label_indent),
+                    labels.is_empty().then_some(0).unwrap_or(style.indent_label),
                 );
                 let labels = labels
                     .into_iter()
@@ -224,7 +224,7 @@ impl FormattedDisplay for FormatterProgramItem {
                     (matches!(directive.directive_type(), DirectiveType::END)
                         || matches!(directive.directive_type(), DirectiveType::ORIG(..)))
                     .then_some(0)
-                    .unwrap_or(style.directive_indent),
+                    .unwrap_or(style.indent_directive),
                 );
                 let comment = comment.as_ref().map_or(None, |c| Some(print_comment(c)));
                 (
@@ -237,7 +237,7 @@ impl FormattedDisplay for FormatterProgramItem {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
-                    labels.is_empty().then_some(0).unwrap_or(style.label_indent),
+                    labels.is_empty().then_some(0).unwrap_or(style.indent_label),
                 );
                 let labels = labels
                     .into_iter()

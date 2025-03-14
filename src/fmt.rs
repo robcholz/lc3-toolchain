@@ -6,9 +6,10 @@ mod raw_ast;
 use crate::error::print_error;
 use crate::formatter::{FormatStyle, Formatter};
 use crate::raw_ast::parse_ast;
-use clap::{Arg, command};
+use clap::{command, Arg};
 use pest::Parser;
 use pest_derive::Parser;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -85,10 +86,10 @@ fn format_file(style: &FormatStyle, filename: &Path, file_content: &str) {
 }
 
 const DEFAULT_STYLE: FormatStyle = FormatStyle {
-    directive_indent: 3,
-    instruction_indent: 4,
-    label_indent: 0,
-    min_comment_distance_from_block: 1,
+    indent_directive: 3,
+    indent_instruction: 4,
+    indent_label: 0,
+    indent_min_comment_from_block: 1,
     space_block_to_comment: 1,
     space_comment_stick_to_body: 0,
     space_from_label_block: 1,
@@ -118,14 +119,35 @@ fn get_from_cli() -> (FormatStyle, bool, Vec<PathBuf>) {
                 .required(true)
                 .index(1),
         )
+        .arg(
+            Arg::new("config-path")
+                .long("config-path")
+                .help(format!(
+                    r#"Path for the {} configuration file. Recursively searches 
+                the given path for the rustfmt.toml config file. If not 
+                found, reverts to the input file path."#,
+                    CONFIG_FILENAME
+                ))
+                .required(false),
+        )
+        .arg(
+            Arg::new("print-config")
+                .long("print-config")
+                .help(r#"Dumps a default or minimal config to stdout"#)
+                .action(clap::ArgAction::SetTrue)
+                .required(false),
+        )
         .get_matches();
 
-    let style;
+    let style = read_style(
+        matches
+            .get_one::<String>("config-path")
+            .map_or(None, |s| Some(PathBuf::from(s))),
+    );
     let check_mode = matches.get_flag("check");
     let file_path = matches
         .get_one::<String>("file")
         .expect("File path is required");
-
     let file_path = match env::current_dir() {
         Ok(root) => root.join(file_path),
         Err(err) => {
@@ -133,15 +155,94 @@ fn get_from_cli() -> (FormatStyle, bool, Vec<PathBuf>) {
             exit(1);
         }
     };
+    let file_path = read_filepath(file_path);
 
-    let file_path: Vec<PathBuf> = match file_path.is_dir() {
-        true => match fs::read_dir(file_path) {
+    if matches.get_flag("print-config") {
+        print_style(&style);
+    }
+
+    (style, check_mode, file_path)
+}
+
+#[derive(Default, Serialize, Deserialize)]
+pub struct Config {
+    #[serde(rename = "format-style")]
+    pub format_style: ConfigFormatStyle,
+}
+
+#[derive(Debug, Default, Copy, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ConfigFormatStyle {
+    pub indent_directive: Option<u8>,
+    pub indent_instruction: Option<u8>,
+    pub indent_label: Option<u8>,
+    pub indent_min_comment_from_block: Option<u8>,
+    pub space_block_to_comment: Option<u8>,
+    pub space_comment_stick_to_body: Option<u8>,
+    pub space_from_label_block: Option<u8>,
+    pub space_from_start_end_block: Option<u8>,
+}
+
+fn read_style(filepath: Option<PathBuf>) -> FormatStyle {
+    let filepath: Option<PathBuf> = match filepath {
+        // read the current one
+        None => match env::current_dir() {
+            Ok(dir) => Some(dir.join(CONFIG_FILENAME)),
+            Err(_) => None,
+        },
+        Some(path) => Some(path),
+    };
+
+    if filepath.is_none() {
+        return DEFAULT_STYLE;
+    }
+
+    let path = filepath.unwrap();
+
+    match fs::read_to_string(&path) {
+        Ok(content) => match toml::from_str::<Config>(&content) {
+            Ok(config) => config_format_style_to_format_style(&DEFAULT_STYLE, config.format_style),
+            Err(err) => {
+                eprintln!(
+                    "Cannot parse {}! {}, fallback to the default settings",
+                    CONFIG_FILENAME, err
+                );
+                DEFAULT_STYLE
+            }
+        },
+        Err(err) => {
+            eprintln!(
+                "Cannot open {}! {}, fallback to the default settings",
+                CONFIG_FILENAME, err
+            );
+            DEFAULT_STYLE
+        }
+    }
+}
+
+fn read_filepath(filepath: PathBuf) -> Vec<PathBuf> {
+    match filepath.is_dir() {
+        true => match fs::read_dir(filepath) {
             Ok(entries) => entries
                 .filter_map(|entry| entry.ok())
                 .map(|entry| entry.path())
                 .filter(|path| {
-                    path.extension()
-                        .map_or(false, |ext| ext == CONFIG_FILENAME_EXTENSION)
+                    let ext = path.extension();
+                    match ext {
+                        None => false,
+                        Some(ext) => {
+                            if ext != CONFIG_FILENAME_EXTENSION {
+                                eprintln!(
+                                    "Filename has to be {}, but found {}!",
+                                    CONFIG_FILENAME_EXTENSION,
+                                    ext.to_string_lossy().as_ref()
+                                );
+                                false
+                            } else {
+                                true
+                            }
+                        }
+                    }
                 }) // Filter by .asm extension
                 .collect(),
             Err(err) => {
@@ -150,42 +251,61 @@ fn get_from_cli() -> (FormatStyle, bool, Vec<PathBuf>) {
             }
         },
         false => {
-            if file_path
-                .extension()
-                .map_or(false, |ext| ext == CONFIG_FILENAME_EXTENSION)
-            {
-                vec![file_path.to_path_buf()]
-            } else {
-                vec![]
-            }
-        }
-    };
-
-    style = match env::current_dir() {
-        Ok(dir) => {
-            let path = dir.join(CONFIG_FILENAME);
-            match fs::read_to_string(&path) {
-                Ok(content) => toml::from_str(&content).unwrap_or_else(|err| {
-                    eprintln!(
-                        "Cannot open {}! {}, fallback to the default settings",
-                        CONFIG_FILENAME, err
-                    );
-                    DEFAULT_STYLE
-                }),
-                Err(err) => {
-                    eprintln!(
-                        "Cannot open {}! {}, fallback to the default settings",
-                        CONFIG_FILENAME, err
-                    );
-                    DEFAULT_STYLE
+            let extension = filepath.extension();
+            match extension {
+                None => {
+                    vec![]
+                }
+                Some(ext) => {
+                    if ext != CONFIG_FILENAME_EXTENSION {
+                        eprintln!(
+                            "Filename has to be .{}, but found .{}!",
+                            CONFIG_FILENAME_EXTENSION,
+                            ext.to_string_lossy().as_ref()
+                        );
+                        vec![]
+                    } else {
+                        vec![filepath]
+                    }
                 }
             }
         }
-        Err(_) => {
-            // fallback
-            DEFAULT_STYLE
-        }
-    };
+    }
+}
 
-    (style, check_mode, file_path)
+fn config_format_style_to_format_style(
+    default: &FormatStyle,
+    config_format_style: ConfigFormatStyle,
+) -> FormatStyle {
+    FormatStyle {
+        indent_directive: config_format_style
+            .indent_directive
+            .unwrap_or(default.indent_directive),
+        indent_instruction: config_format_style
+            .indent_instruction
+            .unwrap_or(default.indent_instruction),
+        indent_label: config_format_style
+            .indent_label
+            .unwrap_or(default.indent_label),
+        indent_min_comment_from_block: config_format_style
+            .indent_min_comment_from_block
+            .unwrap_or(default.indent_min_comment_from_block),
+        space_block_to_comment: config_format_style
+            .space_block_to_comment
+            .unwrap_or(default.space_block_to_comment),
+        space_comment_stick_to_body: config_format_style
+            .space_comment_stick_to_body
+            .unwrap_or(default.space_comment_stick_to_body),
+        space_from_label_block: config_format_style
+            .space_from_label_block
+            .unwrap_or(default.space_from_label_block),
+        space_from_start_end_block: config_format_style
+            .space_from_start_end_block
+            .unwrap_or(default.space_from_start_end_block),
+    }
+}
+
+fn print_style(style: &FormatStyle) {
+    let toml_str = toml::to_string(style).expect("Failed to serialize FormatStyle to TOML");
+    println!("{toml_str}");
 }
