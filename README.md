@@ -11,6 +11,12 @@ LC-3 Assembly Toolchain, designed for ECE109 Spring 2025.
 
 ## Installation
 
+Cargo
+```bash
+cargo install lc3-toolchain
+```
+
+Build from git
 ```bash
 # Clone the repository
 git clone https://github.com/finnsheng/lc3-toolchain.git
