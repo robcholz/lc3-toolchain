@@ -288,9 +288,7 @@ fn print_instruction(instruction: &Instruction) -> String {
         InstructionType::Nop
         | InstructionType::Ret
         | InstructionType::Halt
-        | InstructionType::Put
         | InstructionType::Puts
-        | InstructionType::Get
         | InstructionType::Getc
         | InstructionType::Out
         | InstructionType::In => "".to_owned(),

@@ -32,12 +32,9 @@ SKIP:
 
 ;----- Input/Output -----         
 R4:
-    GET                           ;Read a character from keyboard into R0
-C:
+    GETC                          ;Read a character from keyboard into R0
     OUT                           ;Print character in R0
-    PUT                           ;Print a null-terminated string from R0
-
-S:
+    PUTS                          ;Print a null-terminated string from R0
     IN                            ;Prompt and read a character
 
 ;----- TRAP Routines -----        

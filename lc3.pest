@@ -10,7 +10,7 @@ Ident = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_")* }
 
 Instruction = { Add | And | Not | Ld | Ldi | Ldr | Lea | St | Sti | Str |
     Br | Jmp | Jsr | Jsrr | Ret | Halt |
-    Puts | Put | Get | Getc | Out | In | Trap | Nop }
+    Puts | Getc | Out | In | Trap | Nop }
 
 // Arithmetic and Logical Instructions
 Add = { AddInstruction ~ Register ~ ","? ~ Register ~ ","? ~ (Register | Immediate) }
@@ -38,9 +38,7 @@ Ret = { RetInstruction }
 Halt = { HaltInstruction }
 
 // Input/Output Instructions
-Put = { PutInstruction }
 Puts = { PutsInstruction }
-Get = { GetInstruction }
 Getc = { GetcInstruction }
 Out = { OutInstruction }
 In = { InInstruction }
@@ -66,9 +64,7 @@ JsrrInstruction = { ^"JSRR" }
 NopInstruction = { ^"NOP" }
 RetInstruction = { ^"RET" }
 HaltInstruction = { ^"HALT" }
-PutInstruction = { ^"PUT" }
 PutsInstruction = { ^"PUTS" }
-GetInstruction = { ^"GET" }
 GetcInstruction = { ^"GETC" }
 OutInstruction = { ^"OUT" }
 InInstruction = { ^"IN" }
