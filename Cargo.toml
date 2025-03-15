@@ -1,6 +1,6 @@
 [package]
 name = "lc3-toolchain"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2024"
 description = "Toolchain for LC-3 Assembly Code, designed for ECE109 Spring 2025"
 authors = ["Finn Sheng@NCState Class of 2028"]

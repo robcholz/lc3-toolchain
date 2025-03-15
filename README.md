@@ -1,6 +1,6 @@
 # lc3-toolchain
 
-![Version](https://img.shields.io/badge/version-0.1.1-blue)
+![Version](https://img.shields.io/badge/version-0.1.4-blue)
 ![Edition](https://img.shields.io/badge/edition-2024-orange)
 
 LC-3 Assembly Toolchain, designed for ECE109 Spring 2025.
