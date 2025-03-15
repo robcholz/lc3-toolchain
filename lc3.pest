@@ -1,9 +1,11 @@
-WHITESPACE = _{ " " | "\t" | "\n" | "\r" }
+WHITESPACE = _{ " " | "\t" | "\n" | "\r" | "," }
 Comment = @{ ";" ~ (!"\n" ~ ANY)* }
 
-Program = { SOI ~ ((Instruction | Directive | Comment)|(Label ~ (Instruction | Directive | Comment)))* ~ EOI }
+Program = { SOI ~ (Label | Statement | WHITESPACE )* ~ EOI }
+Statement = _{ Instruction | Directive | Comment }
 
-Label = @{ Ident ~ ":"? }
+// fuck LC3
+Label = @{ !(PhantomInstruction ~ !Ident) ~ Ident ~ ":"? }
 LabelReference = @{ Ident }
 Register = @{ "R" ~ ('0'..'7') }
 Ident = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_")* }
@@ -11,6 +13,13 @@ Ident = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_")* }
 Instruction = { Add | And | Not | Ld | Ldi | Ldr | Lea | St | Sti | Str |
     Br | Jmp | Jsr | Jsrr | Ret | Halt |
     Puts | Getc | Out | In | Trap | Nop }
+
+// prevent the parser from matching as identifier
+PhantomInstruction = _{ AddInstruction | AndInstruction | NotInstruction | LdInstruction | LdiInstruction | LdrInstruction | LeaInstruction |
+                        StInstruction | StiInstruction | StrInstruction | BrInstruction | JmpInstruction | JsrInstruction | JsrrInstruction |
+                        RetInstruction | HaltInstruction | PutsInstruction | GetcInstruction | OutInstruction | InInstruction | TrapInstruction |
+                        NopInstruction }
+
 
 // Arithmetic and Logical Instructions
 Add = { AddInstruction ~ Register ~ ","? ~ Register ~ ","? ~ (Register | Immediate) }
@@ -66,7 +75,7 @@ RetInstruction = { ^"RET" }
 HaltInstruction = { ^"HALT" }
 PutsInstruction = { ^"PUTS" }
 GetcInstruction = { ^"GETC" }
-OutInstruction = { ^"OUT" }
+OutInstruction = { ^"OUT"  }
 InInstruction = { ^"IN" }
 TrapInstruction = { ^"TRAP" }
 
