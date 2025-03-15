@@ -71,12 +71,16 @@ impl<'a> StandardTransform<'a> {
             .collect();
         FormatterProgram {
             items: if self.hybrid_inline_comment {
-                labelled_items
-                    .into_iter()
-                    .tuple_windows()
-                    .map(|(prev, curr)| self.hybrid_comment(prev, curr))
-                    .filter_map(|p| p)
-                    .collect()
+                if labelled_items.len() <= 1 {
+                    labelled_items
+                } else {
+                    labelled_items
+                        .into_iter()
+                        .tuple_windows::<(_, _)>()
+                        .map(|(prev, curr)| self.hybrid_comment(prev, curr))
+                        .filter_map(|p| p)
+                        .collect()
+                }
             } else {
                 labelled_items
             },
