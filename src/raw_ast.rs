@@ -86,6 +86,7 @@ pub enum BrType {
     Zp,
     Np,
     Nzp,
+    None,
 }
 
 #[derive(Debug, Clone)]
@@ -375,6 +376,8 @@ fn parse_instruction(pair: Pair<Rule>) -> Instruction {
                     BrType::P
                 } else if instruction_tp.contains('Z') {
                     BrType::Z
+                } else if instruction_tp.is_empty() {
+                    BrType::None
                 } else {
                     unreachable!()
                 };

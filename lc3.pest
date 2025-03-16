@@ -10,30 +10,30 @@ LabelReference = @{ Ident }
 Register = @{ "R" ~ ('0'..'7') }
 Ident = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_")* }
 
-Instruction = { Add | And | Not | Ld | Ldi | Ldr | Lea | St | Sti | Str |
+Instruction = { Add | And | Not | Ldi | Ldr | Lea | Ld | Str | Sti | St |
     Br | Jmp | Jsr | Jsrr | Ret | Halt |
     Puts | Getc | Out | In | Trap | Nop }
 
 // prevent the parser from matching as identifier
-PhantomInstruction = _{ AddInstruction | AndInstruction | NotInstruction | LdInstruction | LdiInstruction | LdrInstruction | LeaInstruction |
-                        StInstruction | StiInstruction | StrInstruction | BrInstruction | JmpInstruction | JsrInstruction | JsrrInstruction |
+PhantomInstruction = _{ AddInstruction | AndInstruction | NotInstruction | LdiInstruction | LdrInstruction | LeaInstruction |LdInstruction |
+                        StrInstruction | StiInstruction | StInstruction | BrInstruction | JmpInstruction | JsrInstruction | JsrrInstruction |
                         RetInstruction | HaltInstruction | PutsInstruction | GetcInstruction | OutInstruction | InInstruction | TrapInstruction |
                         NopInstruction }
 
 
 // Arithmetic and Logical Instructions
-Add = { AddInstruction ~ Register ~ ","? ~ Register ~ ","? ~ (Register | Immediate) }
-And = { AndInstruction ~ Register ~ ","? ~ Register ~ ","? ~ (Register | Immediate) }
-Not = { NotInstruction ~ Register ~ ","? ~ Register }
+Add = { AddInstruction ~ Register ~ Register ~ (Register | Immediate) }
+And = { AndInstruction ~ Register ~ Register ~ (Register | Immediate) }
+Not = { NotInstruction ~ Register ~ Register }
 
 // Load and Store Instructions
-Ld = { LdInstruction ~ Register ~ ","? ~ LabelReference }
-Ldi = { LdiInstruction ~ Register ~ ","? ~ LabelReference }
-Ldr = { LdrInstruction ~ Register ~ ","? ~ Register ~ ","? ~ Immediate }
-Lea = { LeaInstruction ~ Register ~ ","? ~ LabelReference }
-St = { StInstruction ~ Register ~ ","? ~ LabelReference }
-Sti = { StiInstruction ~ Register ~ ","? ~ LabelReference }
-Str = { StrInstruction ~ Register ~ ","? ~ Register ~ ","? ~ Immediate }
+Ldr = { LdrInstruction ~ Register ~ Register ~ Immediate }
+Ldi = { LdiInstruction ~ Register ~ LabelReference }
+Lea = { LeaInstruction ~ Register ~ LabelReference }
+Ld = { LdInstruction ~ Register ~ LabelReference }
+Sti = { StiInstruction ~ Register ~ LabelReference }
+Str = { StrInstruction ~ Register ~ Register ~ Immediate }
+St = { StInstruction ~ Register ~ LabelReference }
 
 // Branching Instructions
 Br = { BrInstruction ~ LabelReference }
@@ -66,7 +66,7 @@ LeaInstruction = { ^"LEA" }
 StInstruction = { ^"ST" }
 StiInstruction = { ^"STI" }
 StrInstruction = { ^"STR" }
-BrInstruction = { (^"BRnzp") | (^"BRnz") | (^"BRzp") | (^"BRnp") | (^"BRn") | (^"BRz") | (^"BRp") }
+BrInstruction = { (^"BRnzp") | (^"BRnz") | (^"BRzp") | (^"BRnp") | (^"BRn") | (^"BRz") | (^"BRp") | (^"BR") }
 JmpInstruction = { ^"JMP" }
 JsrInstruction = { ^"JSR" }
 JsrrInstruction = { ^"JSRR" }
