@@ -1,7 +1,5 @@
-#![allow(dead_code)]
-use crate::raw_ast::{Comment, Directive, Instruction, Label, Span};
+use crate::ast::raw_ast::{Comment, Directive, Instruction, Label, Span};
 use getset::Getters;
-use itertools::Itertools;
 use pest::Stack;
 use std::collections::HashMap;
 
@@ -19,6 +17,7 @@ pub struct StandardTransform<'a> {
     hybrid_inline_comment: bool,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct LineColumn {
     line: usize,
@@ -51,7 +50,7 @@ impl<'a> StandardTransform<'a> {
         }
     }
 
-    pub fn transform(&mut self, program: crate::raw_ast::Program) -> FormatterProgram {
+    pub fn transform(&mut self, program: crate::ast::raw_ast::Program) -> FormatterProgram {
         let mut labelled_items: Vec<_> = program
             .items()
             .into_iter()
@@ -71,43 +70,44 @@ impl<'a> StandardTransform<'a> {
             .collect();
         FormatterProgram {
             items: if self.hybrid_inline_comment {
-                if labelled_items.len() <= 1 {
-                    labelled_items
-                } else {
-                    labelled_items
-                        .into_iter()
-                        .tuple_windows::<(_, _)>()
-                        .map(|(prev, curr)| self.hybrid_comment(prev, curr))
-                        .filter_map(|p| p)
-                        .collect()
+                let mut res = vec![];
+                for (index, current) in labelled_items.iter().enumerate() {
+                    let next = labelled_items.get(index + 1);
+                    res.push(self.hybrid_comment(current.clone(), next.map(|i| i.clone())));
                 }
+                res.into_iter().filter_map(|i| i).collect()
             } else {
                 labelled_items
             },
         }
     }
 
-    fn hybrid_label(&mut self, program_item: crate::raw_ast::ProgramItem) -> Option<ProgramItem> {
+    fn hybrid_label(
+        &mut self,
+        program_item: crate::ast::raw_ast::ProgramItem,
+    ) -> Option<ProgramItem> {
         match program_item {
-            crate::raw_ast::ProgramItem::Label(label) => {
+            crate::ast::raw_ast::ProgramItem::Label(label) => {
                 self.label_buffer.push(label);
                 None
             }
-            crate::raw_ast::ProgramItem::Instruction(instruction) => {
+            crate::ast::raw_ast::ProgramItem::Instruction(instruction) => {
                 let mut labels = vec![];
                 while let Some(item) = self.label_buffer.pop() {
                     labels.push(item);
                 }
                 Some(ProgramItem::Instruction(labels, instruction, None))
             }
-            crate::raw_ast::ProgramItem::Directive(directive) => {
+            crate::ast::raw_ast::ProgramItem::Directive(directive) => {
                 let mut labels = vec![];
                 while let Some(item) = self.label_buffer.pop() {
                     labels.push(item);
                 }
                 Some(ProgramItem::Directive(labels, directive, None))
             }
-            crate::raw_ast::ProgramItem::Comment(comment) => Some(ProgramItem::Comment(comment)),
+            crate::ast::raw_ast::ProgramItem::Comment(comment) => {
+                Some(ProgramItem::Comment(comment))
+            }
         }
     }
 
@@ -132,7 +132,7 @@ impl<'a> StandardTransform<'a> {
     fn hybrid_comment(
         &mut self,
         curr: FormatterProgramItem,
-        next: FormatterProgramItem,
+        next: Option<FormatterProgramItem>,
     ) -> Option<FormatterProgramItem> {
         match curr {
             FormatterProgramItem::Comment(comment, comment_lc) => {
@@ -144,7 +144,7 @@ impl<'a> StandardTransform<'a> {
                 }
             }
             FormatterProgramItem::Instruction(labels, instruction, comment, lc) => {
-                if let FormatterProgramItem::Comment(comment, lc_comment) = next {
+                if let Some(FormatterProgramItem::Comment(comment, lc_comment)) = next {
                     if lc_comment.at_the_same_line(&lc) {
                         self.forward_next_comment = false;
                         return Some(FormatterProgramItem::Instruction(
@@ -163,7 +163,7 @@ impl<'a> StandardTransform<'a> {
                 ))
             }
             FormatterProgramItem::Directive(labels, directive, comment, lc) => {
-                if let FormatterProgramItem::Comment(comment, lc_comment) = next {
+                if let Some(FormatterProgramItem::Comment(comment, lc_comment)) = next {
                     if lc_comment.at_the_same_line(&lc) {
                         self.forward_next_comment = false;
                         return Some(FormatterProgramItem::Directive(

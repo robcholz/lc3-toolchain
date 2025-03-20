@@ -5,7 +5,7 @@ Program = { SOI ~ (Label | Statement | WHITESPACE )* ~ EOI }
 Statement = _{ Instruction | Directive | Comment }
 
 // fuck LC3
-Label = @{ !(PhantomInstruction ~ !Ident) ~ Ident ~ ":"? }
+Label = @{ !((PhantomInstruction ~ WHITESPACE) | (PhantomInstruction ~ EOI)) ~ Ident ~ ":"? }
 LabelReference = @{ Ident }
 Register = @{ "R" ~ ('0'..'7') }
 Ident = @{ ASCII_ALPHANUMERIC ~ (ASCII_ALPHANUMERIC | "_")* }

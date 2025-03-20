@@ -1,7 +1,7 @@
-#![allow(dead_code)]
-use crate::Rule;
+use crate::ast::parse;
 use either::Either;
 use getset::Getters;
+use parse::Rule;
 use pest::iterators::Pair;
 
 #[derive(Debug)]

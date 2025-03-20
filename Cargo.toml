@@ -1,6 +1,6 @@
 [package]
 name = "lc3-toolchain"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2024"
 description = "Toolchain for LC-3 Assembly Code, designed for ECE109 Spring 2025"
 authors = ["Finn Sheng@NCState Class of 2028"]
@@ -19,11 +19,14 @@ pest = "2.7.15"
 pest_derive = "2.7.15"
 getset = "0.1.5"
 either = "1.15.0"
-itertools = "0.14.0"
 anyhow = "1.0.97"
 console = "0.15.11"
 
 
 [[bin]]
 name = "lc3fmt"
-path = "src/fmt.rs"
+path = "src/bin/fmt.rs"
+
+[[test]]
+name = "test_fmt"
+path = "test/test_fmt.rs"

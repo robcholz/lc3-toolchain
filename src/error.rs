@@ -1,4 +1,4 @@
-use crate::Rule;
+use crate::ast::parse::Rule;
 
 pub fn print_error(filename: &str, source: &str, error: pest::error::Error<Rule>) {
     use codespan_reporting::diagnostic::{Diagnostic, Label};

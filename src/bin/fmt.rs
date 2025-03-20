@@ -1,25 +1,14 @@
-mod error;
-mod fmt_ast;
-mod formatter;
-mod raw_ast;
-
-use crate::error::print_error;
-use crate::formatter::{FormatStyle, Formatter};
-use crate::raw_ast::parse_ast;
 use clap::{Arg, command};
 use console::{Style, style};
-use pest::Parser;
-use pest_derive::Parser;
+use lc3_toolchain::ast::get_ast;
+use lc3_toolchain::error::print_error;
+use lc3_toolchain::fmt::{FormatStyle, Formatter};
 use serde::{Deserialize, Serialize};
 use similar::{ChangeTag, TextDiff};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::{env, fmt, fs};
-
-#[derive(Parser)]
-#[grammar = "lc3.pest"]
-struct LC3Parser;
 
 static FORMATTED_COUNT: AtomicUsize = AtomicUsize::new(0);
 static FILE_DIFF_COUNT: AtomicUsize = AtomicUsize::new(0);
@@ -79,10 +68,8 @@ fn format_file<'a>(
     filename: &Path,
     file_content: &str,
 ) -> Option<Formatter<'a>> {
-    match LC3Parser::parse(Rule::Program, file_content) {
-        Ok(pairs) => {
-            let program = parse_ast(pairs.into_iter().next().unwrap());
-            let program = fmt_ast::StandardTransform::new(true, file_content).transform(program);
+    match get_ast(file_content) {
+        Ok(program) => {
             let mut formatter = Formatter::new(style);
             formatter.format(program);
             Some(formatter)

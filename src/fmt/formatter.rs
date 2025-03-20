@@ -1,5 +1,5 @@
-use crate::fmt_ast::{FormatterProgram, FormatterProgramItem};
-use crate::raw_ast::{
+use crate::ast::processed_ast::{FormatterProgram, FormatterProgramItem};
+use crate::ast::raw_ast::{
     Comment, Directive, DirectiveType, Immediate, Instruction, InstructionType, Label, Register,
 };
 use either::Either;
@@ -40,11 +40,11 @@ impl<'a> Formatter<'a> {
         self.buffer.reserve(program.items().len() * 10);
         let mut lines: Vec<(Vec<String>, String, Option<String>, usize)> = vec![];
         for (index, line) in program.items().iter().enumerate() {
-            let l = line.formatted_display(&self.style);
+            let (labels, body, comments) = line.formatted_display(&self.style);
             lines.push((
-                l.0,
-                l.1,
-                l.2,
+                labels,
+                body,
+                comments,
                 self.control_padding(line, program.items().get(index + 1)) + 1,
             ));
         }
