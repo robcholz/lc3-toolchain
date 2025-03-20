@@ -16,9 +16,22 @@ mod test_fmt {
         space_comment_stick_to_body: 0,
         space_from_label_block: 1,
         space_from_start_end_block: 1,
+        colon_after_label: true,
     };
 
-    fn assert_true(path: &'static str) {
+    const NO_COLON_STYLE: FormatStyle = FormatStyle {
+        indent_directive: 3,
+        indent_instruction: 4,
+        indent_label: 0,
+        indent_min_comment_from_block: 1,
+        space_block_to_comment: 1,
+        space_comment_stick_to_body: 0,
+        space_from_label_block: 1,
+        space_from_start_end_block: 1,
+        colon_after_label: false,
+    };
+
+    fn assert_true(style: &FormatStyle, path: &'static str) {
         let source_path = PathBuf::from("test/data/source").join(path);
         let expected_path = PathBuf::from("test/data/expected").join(path);
         let expected_files = get_test_files(&expected_path).expect("Path does not exist!");
@@ -46,7 +59,7 @@ mod test_fmt {
         let program = get_ast(source_file);
         assert!(program.is_ok());
         let program = program.unwrap();
-        let mut formatter = Formatter::new(&DEFAULT_STYLE);
+        let mut formatter = Formatter::new(style);
         formatter.format(program);
         assert_eq!(
             expected_file,
@@ -56,36 +69,41 @@ mod test_fmt {
 
     #[test]
     fn test_1() {
-        assert_true("fmt/normal.asm")
+        assert_true(&DEFAULT_STYLE, "fmt/normal.asm")
     }
 
     #[test]
     fn test_labels() {
-        assert_true("fmt/labels.asm")
+        assert_true(&DEFAULT_STYLE, "fmt/labels.asm")
     }
 
     #[test]
     fn test_all() {
-        assert_true("fmt/all.asm")
+        assert_true(&DEFAULT_STYLE, "fmt/all.asm")
     }
 
     #[test]
     fn test_empty() {
-        assert_true("fmt/empty.asm")
+        assert_true(&DEFAULT_STYLE, "fmt/empty.asm")
     }
 
     #[test]
     fn test_single_comment() {
-        assert_true("fmt/single_comment.asm")
+        assert_true(&DEFAULT_STYLE, "fmt/single_comment.asm")
     }
 
     #[test]
     fn test_minimal_instruction() {
-        assert_true("fmt/minimal_instruction.asm")
+        assert_true(&DEFAULT_STYLE, "fmt/minimal_instruction.asm")
     }
 
     #[test]
     fn test_minimal_directive() {
-        assert_true("fmt/minimal_directive.asm")
+        assert_true(&DEFAULT_STYLE, "fmt/minimal_directive.asm")
+    }
+
+    #[test]
+    fn test_no_colon_labels() {
+        assert_true(&NO_COLON_STYLE, "fmt/no_colon_labels.asm")
     }
 }

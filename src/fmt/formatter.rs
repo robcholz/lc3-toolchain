@@ -21,6 +21,7 @@ pub struct FormatStyle {
     pub space_comment_stick_to_body: u8,   // vertical //done
     pub space_from_label_block: u8,        // vertical //done
     pub space_from_start_end_block: u8,    // vertical  // done
+    pub colon_after_label: bool,
 }
 
 pub struct Formatter<'a> {
@@ -198,7 +199,7 @@ impl FormattedDisplay for FormatterProgramItem {
                 );
                 let labels = labels
                     .into_iter()
-                    .map(|l| format!("{label_indent}{}", print_label(l)))
+                    .map(|l| format!("{label_indent}{}", print_label(style, l)))
                     .collect();
                 let mut instruction_indent = "".to_owned();
                 add_indent(&mut instruction_indent, style.indent_instruction);
@@ -217,7 +218,7 @@ impl FormattedDisplay for FormatterProgramItem {
                 );
                 let labels = labels
                     .into_iter()
-                    .map(|l| format!("{label_indent}{}", print_label(l)))
+                    .map(|l| format!("{label_indent}{}", print_label(style, l)))
                     .collect();
                 let mut directive_indent = "".to_owned();
                 add_indent(
@@ -242,7 +243,7 @@ impl FormattedDisplay for FormatterProgramItem {
                 );
                 let labels = labels
                     .into_iter()
-                    .map(|l| format!("{label_indent}{}", print_label(l)))
+                    .map(|l| format!("{label_indent}{}", print_label(style, l)))
                     .collect();
                 (labels, "".to_owned(), None)
             }
@@ -313,12 +314,23 @@ fn print_comment(comment: &Comment) -> String {
     }
 }
 
-fn print_label(label: &Label) -> String {
-    match label.content().ends_with(":") {
-        false => {
-            format!("{}:", label.content())
+fn print_label(style: &FormatStyle, label: &Label) -> String {
+    if style.colon_after_label {
+        match label.content().ends_with(":") {
+            false => {
+                if style.colon_after_label {
+                    format!("{}:", label.content())
+                } else {
+                    label.content().into()
+                }
+            }
+            true => label.content().to_owned(),
         }
-        true => label.content().to_owned(),
+    } else {
+        match label.content().strip_suffix(":") {
+            None => label.content().into(),
+            Some(label) => label.to_owned(),
+        }
     }
 }
 

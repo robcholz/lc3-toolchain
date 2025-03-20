@@ -168,6 +168,7 @@ const DEFAULT_STYLE: FormatStyle = FormatStyle {
     space_comment_stick_to_body: 0,
     space_from_label_block: 1,
     space_from_start_end_block: 1,
+    colon_after_label: true,
 };
 
 const CONFIG_FILENAME: &str = "lc3-format.toml";
@@ -263,6 +264,7 @@ pub struct ConfigFormatStyle {
     pub space_comment_stick_to_body: Option<u8>,
     pub space_from_label_block: Option<u8>,
     pub space_from_start_end_block: Option<u8>,
+    pub colon_after_label: Option<bool>,
 }
 
 fn read_style(filepath_opt: Option<PathBuf>) -> FormatStyle {
@@ -390,6 +392,9 @@ fn config_format_style_to_format_style(
         space_from_start_end_block: config_format_style
             .space_from_start_end_block
             .unwrap_or(default.space_from_start_end_block),
+        colon_after_label: config_format_style
+            .colon_after_label
+            .unwrap_or(default.colon_after_label),
     }
 }
 
