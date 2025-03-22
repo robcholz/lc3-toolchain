@@ -1,6 +1,8 @@
 use clap::{Arg, command};
 use console::{Style, style};
 use lc3_toolchain::ast::get_ast;
+use lc3_toolchain::bin_utils;
+use lc3_toolchain::bin_utils::get_relative_path;
 use lc3_toolchain::error::print_error;
 use lc3_toolchain::fmt::{FormatStyle, Formatter};
 use serde::{Deserialize, Serialize};
@@ -21,13 +23,8 @@ fn main() -> anyhow::Result<()> {
         .iter()
         .for_each(|path| match fs::read_to_string(path) {
             Ok(content) => {
-                let path: &Path = match env::current_dir() {
-                    Ok(root) => match path.strip_prefix(root) {
-                        Ok(relative_path) => relative_path,
-                        Err(_) => path,
-                    },
-                    Err(_) => path,
-                };
+                let path_buf = get_relative_path(path);
+                let path = path_buf.as_path();
                 let result = format_file(&style, path, content.as_str());
                 match result {
                     None => {}
@@ -174,8 +171,13 @@ const DEFAULT_STYLE: FormatStyle = FormatStyle {
 const CONFIG_FILENAME: &str = "lc3-format.toml";
 const CONFIG_FILENAME_EXTENSION: &str = "asm";
 
+const BIN_NAME: &str = "lc3-toolchain lc3fmt";
+const ABOUT: &str = "Formatter of LC3, designed for ECE109 Spring 2025";
+
 fn get_from_cli() -> (FormatStyle, Vec<PathBuf>) {
     let matches = command!()
+        .name(BIN_NAME)
+        .about(ABOUT)
         .help_template(
             "{name} {version}\nAuthor: {author}\n{about}\n\n{usage-heading}\n{usage}\n\n{all-args}",
         )
@@ -238,7 +240,11 @@ fn get_from_cli() -> (FormatStyle, Vec<PathBuf>) {
             exit(1);
         }
     };
-    let file_path = read_filepath(file_path);
+    let file_path = bin_utils::read_filepath(
+        VERBOSE_MODE.load(Ordering::Relaxed),
+        CONFIG_FILENAME_EXTENSION,
+        file_path,
+    );
 
     if matches.get_flag("print-config") {
         print_style(&style);
@@ -302,63 +308,6 @@ fn read_style(filepath_opt: Option<PathBuf>) -> FormatStyle {
                 );
             }
             DEFAULT_STYLE
-        }
-    }
-}
-
-fn read_filepath(filepath: PathBuf) -> Vec<PathBuf> {
-    match filepath.is_dir() {
-        true => match fs::read_dir(filepath) {
-            Ok(entries) => entries
-                .filter_map(|entry| entry.ok())
-                .map(|entry| entry.path())
-                .filter(|path| {
-                    let ext = path.extension();
-                    match ext {
-                        None => false,
-                        Some(ext) => {
-                            if ext != CONFIG_FILENAME_EXTENSION {
-                                if VERBOSE_MODE.load(Ordering::Relaxed) {
-                                    eprintln!(
-                                        "Filename has to be {}, but found {}!",
-                                        CONFIG_FILENAME_EXTENSION,
-                                        ext.to_string_lossy().as_ref()
-                                    );
-                                }
-                                false
-                            } else {
-                                true
-                            }
-                        }
-                    }
-                }) // Filter by .asm extension
-                .collect(),
-            Err(err) => {
-                eprintln!("{err}");
-                exit(1);
-            }
-        },
-        false => {
-            let extension = filepath.extension();
-            match extension {
-                None => {
-                    vec![]
-                }
-                Some(ext) => {
-                    if ext != CONFIG_FILENAME_EXTENSION {
-                        if VERBOSE_MODE.load(Ordering::Relaxed) {
-                            eprintln!(
-                                "Filename has to be .{}, but found .{}!",
-                                CONFIG_FILENAME_EXTENSION,
-                                ext.to_string_lossy().as_ref()
-                            );
-                        }
-                        vec![]
-                    } else {
-                        vec![filepath]
-                    }
-                }
-            }
         }
     }
 }

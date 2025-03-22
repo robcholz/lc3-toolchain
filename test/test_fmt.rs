@@ -1,5 +1,7 @@
 #![crate_name = "test_fmt"]
 
+mod test_lint;
+
 #[cfg(test)]
 mod test_fmt {
     use lc3_toolchain::ast::get_ast;

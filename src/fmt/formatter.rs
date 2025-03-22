@@ -1,4 +1,4 @@
-use crate::ast::processed_ast::{FormatterProgram, FormatterProgramItem};
+use crate::ast::processed_ast::{Program, ProgramItem};
 use crate::ast::raw_ast::{
     Comment, Directive, DirectiveType, Immediate, Instruction, InstructionType, Label, Register,
 };
@@ -37,7 +37,7 @@ impl<'a> Formatter<'a> {
         }
     }
 
-    pub fn format(&mut self, program: FormatterProgram) {
+    pub fn format(&mut self, program: Program) {
         self.buffer.reserve(program.items().len() * 10);
         let mut lines: Vec<(Vec<String>, String, Option<String>, usize)> = vec![];
         for (index, line) in program.items().iter().enumerate() {
@@ -94,11 +94,7 @@ impl<'a> Formatter<'a> {
         }
     }
 
-    fn control_padding(
-        &mut self,
-        current: &FormatterProgramItem,
-        next: Option<&FormatterProgramItem>,
-    ) -> usize {
+    fn control_padding(&mut self, current: &ProgramItem, next: Option<&ProgramItem>) -> usize {
         let mut paddings = 0usize;
 
         // space_comment_stick_to_body
@@ -114,7 +110,7 @@ impl<'a> Formatter<'a> {
         // space_block_between
         if self.style.space_block_to_comment != 0 {
             // solve conflict with padding_start_end_directive_block
-            if let FormatterProgramItem::Directive(_, directive, ..) = current {
+            if let ProgramItem::Directive(_, directive, ..) = current {
                 if matches!(directive.directive_type(), DirectiveType::ORIG(..)) {
                     // balabala
                 } else {
@@ -138,22 +134,22 @@ impl<'a> Formatter<'a> {
         // space_from_label_block
         if self.style.space_from_label_block != 0 {
             let space: u8 = match current {
-                FormatterProgramItem::Instruction(curr_label, ..)
-                | FormatterProgramItem::Directive(curr_label, ..) => match next {
+                ProgramItem::Instruction(curr_label, ..)
+                | ProgramItem::Directive(curr_label, ..) => match next {
                     None => 0,
                     Some(next) => match next {
-                        FormatterProgramItem::Instruction(next_label, ..)
-                        | FormatterProgramItem::Directive(next_label, ..) => {
+                        ProgramItem::Instruction(next_label, ..)
+                        | ProgramItem::Directive(next_label, ..) => {
                             if curr_label.is_empty() && (!next_label.is_empty()) {
                                 self.style.space_from_label_block
                             } else {
                                 0
                             }
                         }
-                        FormatterProgramItem::EOL(..) | FormatterProgramItem::Comment(..) => 0,
+                        ProgramItem::EOL(..) | ProgramItem::Comment(..) => 0,
                     },
                 },
-                FormatterProgramItem::EOL(..) | FormatterProgramItem::Comment(..) => 0,
+                ProgramItem::EOL(..) | ProgramItem::Comment(..) => 0,
             };
             paddings += space as usize;
         }
@@ -161,12 +157,12 @@ impl<'a> Formatter<'a> {
         // padding_start_end_directive_block
         if self.style.space_from_start_end_block != 0 {
             let space: u8 = match current {
-                FormatterProgramItem::Directive(_, directive, ..) => {
+                ProgramItem::Directive(_, directive, ..) => {
                     if matches!(directive.directive_type(), DirectiveType::ORIG(..)) {
                         self.style.space_from_start_end_block
                     } else if next.is_some() {
                         match next.unwrap() {
-                            FormatterProgramItem::Directive(_, directive, _, _) => {
+                            ProgramItem::Directive(_, directive, _, _) => {
                                 if matches!(directive.directive_type(), DirectiveType::END) {
                                     self.style.space_from_start_end_block
                                 } else {
@@ -187,11 +183,11 @@ impl<'a> Formatter<'a> {
     }
 }
 
-impl FormattedDisplay for FormatterProgramItem {
+impl FormattedDisplay for ProgramItem {
     fn formatted_display(&self, style: &FormatStyle) -> (Vec<String>, String, Option<String>) {
         match self {
-            FormatterProgramItem::Comment(comment, _) => (vec![], print_comment(comment), None),
-            FormatterProgramItem::Instruction(labels, instruction, comment, _) => {
+            ProgramItem::Comment(comment, _) => (vec![], print_comment(comment), None),
+            ProgramItem::Instruction(labels, instruction, comment, _) => {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
@@ -210,7 +206,7 @@ impl FormattedDisplay for FormatterProgramItem {
                     comment,
                 )
             }
-            FormatterProgramItem::Directive(labels, directive, comment, _) => {
+            ProgramItem::Directive(labels, directive, comment, _) => {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
@@ -235,7 +231,7 @@ impl FormattedDisplay for FormatterProgramItem {
                     comment,
                 )
             }
-            FormatterProgramItem::EOL(labels) => {
+            ProgramItem::EOL(labels) => {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,

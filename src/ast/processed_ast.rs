@@ -4,9 +4,9 @@ use pest::Stack;
 use std::collections::HashMap;
 
 #[derive(Debug, Getters)]
-pub struct FormatterProgram {
+pub struct Program {
     #[get = "pub"]
-    items: Vec<FormatterProgramItem>,
+    items: Vec<ProgramItem>,
 }
 
 #[derive(Debug)]
@@ -25,7 +25,7 @@ pub struct LineColumn {
 }
 
 #[derive(Debug, Clone)]
-enum ProgramItem {
+enum RawProgramItem {
     Comment(Comment),
     Instruction(Vec<Label>, Instruction, Option<Comment>),
     Directive(Vec<Label>, Directive, Option<Comment>),
@@ -33,7 +33,7 @@ enum ProgramItem {
 }
 
 #[derive(Debug, Clone)]
-pub enum FormatterProgramItem {
+pub enum ProgramItem {
     Comment(Comment, LineColumn),
     Instruction(Vec<Label>, Instruction, Option<Comment>, LineColumn),
     Directive(Vec<Label>, Directive, Option<Comment>, LineColumn),
@@ -50,7 +50,7 @@ impl<'a> StandardTransform<'a> {
         }
     }
 
-    pub fn transform(&mut self, program: crate::ast::raw_ast::Program) -> FormatterProgram {
+    pub fn transform(&mut self, program: crate::ast::raw_ast::Program) -> Program {
         let mut labelled_items: Vec<_> = program
             .items()
             .into_iter()
@@ -61,14 +61,14 @@ impl<'a> StandardTransform<'a> {
             while let Some(item) = self.label_buffer.pop() {
                 labels.push(item);
             }
-            labelled_items.push(Some(ProgramItem::EOL(labels)));
+            labelled_items.push(Some(RawProgramItem::EOL(labels)));
         }
         let labelled_items: Vec<_> = labelled_items
             .into_iter()
             .filter_map(|p| p)
             .map(|p| self.add_line_info(p))
             .collect();
-        FormatterProgram {
+        Program {
             items: if self.hybrid_inline_comment {
                 let mut res = vec![];
                 for (index, current) in labelled_items.iter().enumerate() {
@@ -85,7 +85,7 @@ impl<'a> StandardTransform<'a> {
     fn hybrid_label(
         &mut self,
         program_item: crate::ast::raw_ast::ProgramItem,
-    ) -> Option<ProgramItem> {
+    ) -> Option<RawProgramItem> {
         match program_item {
             crate::ast::raw_ast::ProgramItem::Label(label) => {
                 self.label_buffer.push(label);
@@ -96,58 +96,58 @@ impl<'a> StandardTransform<'a> {
                 while let Some(item) = self.label_buffer.pop() {
                     labels.push(item);
                 }
-                Some(ProgramItem::Instruction(labels, instruction, None))
+                Some(RawProgramItem::Instruction(labels, instruction, None))
             }
             crate::ast::raw_ast::ProgramItem::Directive(directive) => {
                 let mut labels = vec![];
                 while let Some(item) = self.label_buffer.pop() {
                     labels.push(item);
                 }
-                Some(ProgramItem::Directive(labels, directive, None))
+                Some(RawProgramItem::Directive(labels, directive, None))
             }
             crate::ast::raw_ast::ProgramItem::Comment(comment) => {
-                Some(ProgramItem::Comment(comment))
+                Some(RawProgramItem::Comment(comment))
             }
         }
     }
 
-    fn add_line_info(&mut self, program_item: ProgramItem) -> FormatterProgramItem {
+    fn add_line_info(&mut self, program_item: RawProgramItem) -> ProgramItem {
         match program_item {
-            ProgramItem::Comment(comment) => {
+            RawProgramItem::Comment(comment) => {
                 let lc = self.look_table.get_line_and_column(comment.span());
-                FormatterProgramItem::Comment(comment, lc)
+                ProgramItem::Comment(comment, lc)
             }
-            ProgramItem::Instruction(label, instruction, comment) => {
+            RawProgramItem::Instruction(label, instruction, comment) => {
                 let lc = self.look_table.get_line_and_column(instruction.span());
-                FormatterProgramItem::Instruction(label, instruction, comment, lc)
+                ProgramItem::Instruction(label, instruction, comment, lc)
             }
-            ProgramItem::Directive(label, directive, comment) => {
+            RawProgramItem::Directive(label, directive, comment) => {
                 let lc = self.look_table.get_line_and_column(directive.span());
-                FormatterProgramItem::Directive(label, directive, comment, lc)
+                ProgramItem::Directive(label, directive, comment, lc)
             }
-            ProgramItem::EOL(label) => FormatterProgramItem::EOL(label),
+            RawProgramItem::EOL(label) => ProgramItem::EOL(label),
         }
     }
 
     fn hybrid_comment(
         &mut self,
-        curr: FormatterProgramItem,
-        next: Option<FormatterProgramItem>,
-    ) -> Option<FormatterProgramItem> {
+        curr: ProgramItem,
+        next: Option<ProgramItem>,
+    ) -> Option<ProgramItem> {
         match curr {
-            FormatterProgramItem::Comment(comment, comment_lc) => {
+            ProgramItem::Comment(comment, comment_lc) => {
                 if self.forward_next_comment {
-                    Some(FormatterProgramItem::Comment(comment, comment_lc))
+                    Some(ProgramItem::Comment(comment, comment_lc))
                 } else {
                     self.forward_next_comment = true;
                     None
                 }
             }
-            FormatterProgramItem::Instruction(labels, instruction, comment, lc) => {
-                if let Some(FormatterProgramItem::Comment(comment, lc_comment)) = next {
+            ProgramItem::Instruction(labels, instruction, comment, lc) => {
+                if let Some(ProgramItem::Comment(comment, lc_comment)) = next {
                     if lc_comment.at_the_same_line(&lc) {
                         self.forward_next_comment = false;
-                        return Some(FormatterProgramItem::Instruction(
+                        return Some(ProgramItem::Instruction(
                             labels,
                             instruction,
                             Some(comment),
@@ -155,30 +155,18 @@ impl<'a> StandardTransform<'a> {
                         ));
                     }
                 }
-                Some(FormatterProgramItem::Instruction(
-                    labels,
-                    instruction,
-                    comment,
-                    lc,
-                ))
+                Some(ProgramItem::Instruction(labels, instruction, comment, lc))
             }
-            FormatterProgramItem::Directive(labels, directive, comment, lc) => {
-                if let Some(FormatterProgramItem::Comment(comment, lc_comment)) = next {
+            ProgramItem::Directive(labels, directive, comment, lc) => {
+                if let Some(ProgramItem::Comment(comment, lc_comment)) = next {
                     if lc_comment.at_the_same_line(&lc) {
                         self.forward_next_comment = false;
-                        return Some(FormatterProgramItem::Directive(
-                            labels,
-                            directive,
-                            Some(comment),
-                            lc,
-                        ));
+                        return Some(ProgramItem::Directive(labels, directive, Some(comment), lc));
                     }
                 }
-                Some(FormatterProgramItem::Directive(
-                    labels, directive, comment, lc,
-                ))
+                Some(ProgramItem::Directive(labels, directive, comment, lc))
             }
-            FormatterProgramItem::EOL(labels) => Some(FormatterProgramItem::EOL(labels)),
+            ProgramItem::EOL(labels) => Some(ProgramItem::EOL(labels)),
         }
     }
 }
@@ -236,20 +224,20 @@ impl LineColumn {
     }
 }
 
-impl FormatterProgramItem {
+impl ProgramItem {
     pub fn is_comment(&self) -> bool {
-        matches!(self, FormatterProgramItem::Comment(..))
+        matches!(self, ProgramItem::Comment(..))
     }
 
     pub fn is_instruction(&self) -> bool {
-        matches!(self, FormatterProgramItem::Instruction(..))
+        matches!(self, ProgramItem::Instruction(..))
     }
 
     pub fn is_directive(&self) -> bool {
-        matches!(self, FormatterProgramItem::Directive(..))
+        matches!(self, ProgramItem::Directive(..))
     }
 
     pub fn is_eol(&self) -> bool {
-        matches!(self, FormatterProgramItem::EOL(..))
+        matches!(self, ProgramItem::EOL(..))
     }
 }
