@@ -28,6 +28,7 @@ const DEFAULT_STYLE: LintStyle = LintStyle {
 };
 
 #[derive(Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 struct ConfigLintStyle {
     colon_after_label: Option<bool>,
     label_style: Option<CaseStyle>,
