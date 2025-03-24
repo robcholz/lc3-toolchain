@@ -22,6 +22,7 @@ pub struct FormatStyle {
     pub space_from_label_block: u8,        // vertical //done
     pub space_from_start_end_block: u8,    // vertical  // done
     pub colon_after_label: bool,
+    pub fixed_body_comment_indent: bool,
 }
 
 pub struct Formatter<'a> {
@@ -65,7 +66,12 @@ impl<'a> Formatter<'a> {
                 .for_each(|e| label.push_str(e.as_str()));
             self.buffer.append(&mut label.into_bytes());
             self.buffer.append(&mut body.into_bytes());
-            self.add_indent(missing_indent);
+            self.add_indent(
+                self.style
+                    .fixed_body_comment_indent
+                    .then_some(missing_indent)
+                    .unwrap_or(1), // default indent between block and comment
+            );
             match comment {
                 None => {}
                 Some(comment) => {

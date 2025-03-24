@@ -19,6 +19,7 @@ mod test_fmt {
         space_from_label_block: 1,
         space_from_start_end_block: 1,
         colon_after_label: true,
+        fixed_body_comment_indent: true,
     };
 
     const NO_COLON_STYLE: FormatStyle = FormatStyle {
@@ -31,6 +32,20 @@ mod test_fmt {
         space_from_label_block: 1,
         space_from_start_end_block: 1,
         colon_after_label: false,
+        fixed_body_comment_indent: true,
+    };
+
+    const FLEXIBLE_BODY_COMMENT_INDENT: FormatStyle = FormatStyle {
+        indent_directive: 3,
+        indent_instruction: 4,
+        indent_label: 0,
+        indent_min_comment_from_block: 1,
+        space_block_to_comment: 1,
+        space_comment_stick_to_body: 0,
+        space_from_label_block: 1,
+        space_from_start_end_block: 1,
+        colon_after_label: true,
+        fixed_body_comment_indent: false,
     };
 
     fn assert_true(style: &FormatStyle, path: &'static str) {
@@ -107,5 +122,13 @@ mod test_fmt {
     #[test]
     fn test_no_colon_labels() {
         assert_true(&NO_COLON_STYLE, "fmt/no_colon_labels.asm")
+    }
+
+    #[test]
+    fn test_flexible_block_comment_indent() {
+        assert_true(
+            &FLEXIBLE_BODY_COMMENT_INDENT,
+            "fmt/flexible_comment_indent.asm",
+        )
     }
 }
