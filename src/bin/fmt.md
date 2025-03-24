@@ -58,5 +58,6 @@ space-comment-stick-to-body = 0
 space-from-label-block = 1
 space-from-start-end-block = 1
 colon-after-label = true
-fixed-body-comment-indent = true
+fixed-body-comment-indent = false
+directive-label-wrap = false
 ```

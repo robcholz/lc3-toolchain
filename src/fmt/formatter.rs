@@ -23,6 +23,7 @@ pub struct FormatStyle {
     pub space_from_start_end_block: u8,    // vertical  // done
     pub colon_after_label: bool,
     pub fixed_body_comment_indent: bool,
+    pub directive_label_wrap: bool,
 }
 
 pub struct Formatter<'a> {
@@ -42,7 +43,10 @@ impl<'a> Formatter<'a> {
         self.buffer.reserve(program.items().len() * 10);
         let mut lines: Vec<(Vec<String>, String, Option<String>, usize)> = vec![];
         for (index, line) in program.items().iter().enumerate() {
-            let (labels, body, comments) = line.formatted_display(&self.style);
+            let (labels, mut body, comments) = line.formatted_display(&self.style);
+            if self.style.directive_label_wrap == false && (!labels.is_empty()) {
+                body = body.trim().to_string();
+            }
             lines.push((
                 labels,
                 body,
@@ -57,6 +61,7 @@ impl<'a> Formatter<'a> {
         for (labels, body, comment, space) in lines.into_iter() {
             let missing_indent = comment_start_column - body.len();
             let mut label = "".to_owned();
+            let is_label_empty = labels.is_empty();
             labels
                 .into_iter()
                 .map(|mut l| {
@@ -64,13 +69,17 @@ impl<'a> Formatter<'a> {
                     l
                 })
                 .for_each(|e| label.push_str(e.as_str()));
+            if self.style.directive_label_wrap == false && !is_label_empty {
+                label.pop();
+                label.push(' ');
+            }
             self.buffer.append(&mut label.into_bytes());
             self.buffer.append(&mut body.into_bytes());
             self.add_indent(
                 self.style
                     .fixed_body_comment_indent
-                    .then_some(missing_indent)
-                    .unwrap_or(1), // default indent between block and comment
+                    .then_some(1)
+                    .unwrap_or(missing_indent), // default indent between block and comment
             );
             match comment {
                 None => {}

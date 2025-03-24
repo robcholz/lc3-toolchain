@@ -166,7 +166,8 @@ const DEFAULT_STYLE: FormatStyle = FormatStyle {
     space_from_label_block: 1,
     space_from_start_end_block: 1,
     colon_after_label: true,
-    fixed_body_comment_indent: true,
+    fixed_body_comment_indent: false,
+    directive_label_wrap: false,
 };
 
 const CONFIG_FILENAME: &str = "lc3-format.toml";
@@ -273,6 +274,7 @@ pub struct ConfigFormatStyle {
     pub space_from_start_end_block: Option<u8>,
     pub colon_after_label: Option<bool>,
     pub fixed_body_comment_indent: Option<bool>,
+    pub directive_label_wrap: Option<bool>,
 }
 
 fn read_style(filepath_opt: Option<PathBuf>) -> FormatStyle {
@@ -349,6 +351,9 @@ fn config_format_style_to_format_style(
         fixed_body_comment_indent: config_format_style
             .fixed_body_comment_indent
             .unwrap_or(default.fixed_body_comment_indent),
+        directive_label_wrap: config_format_style
+            .directive_label_wrap
+            .unwrap_or(default.directive_label_wrap),
     }
 }
 
