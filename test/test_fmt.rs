@@ -1,12 +1,13 @@
 #![crate_name = "test_fmt"]
 
 mod test_lint;
+pub mod test_utils;
 
 #[cfg(test)]
 mod test_fmt {
+    use crate::test_utils::get_test_files;
     use lc3_toolchain::ast::get_ast;
     use lc3_toolchain::fmt::{FormatStyle, Formatter};
-    use lc3_toolchain::test_utils::get_test_files;
     use std::path::PathBuf;
 
     const DEFAULT_STYLE: FormatStyle = FormatStyle {

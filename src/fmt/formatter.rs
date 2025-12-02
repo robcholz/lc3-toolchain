@@ -43,8 +43,8 @@ impl<'a> Formatter<'a> {
         self.buffer.reserve(program.items().len() * 10);
         let mut lines: Vec<(Vec<String>, String, Option<String>, usize)> = vec![];
         for (index, line) in program.items().iter().enumerate() {
-            let (labels, mut body, comments) = line.formatted_display(&self.style);
-            if self.style.directive_label_wrap == false && (!labels.is_empty()) {
+            let (labels, mut body, comments) = line.formatted_display(self.style);
+            if !self.style.directive_label_wrap && (!labels.is_empty()) {
                 body = body.trim().to_string();
             }
             lines.push((
@@ -69,17 +69,18 @@ impl<'a> Formatter<'a> {
                     l
                 })
                 .for_each(|e| label.push_str(e.as_str()));
-            if self.style.directive_label_wrap == false && !is_label_empty {
+            if !self.style.directive_label_wrap && !is_label_empty {
                 label.pop();
                 label.push(' ');
             }
             self.buffer.append(&mut label.into_bytes());
             self.buffer.append(&mut body.into_bytes());
             self.add_indent(
-                self.style
-                    .fixed_body_comment_indent
-                    .then_some(1)
-                    .unwrap_or(missing_indent), // default indent between block and comment
+                if self.style.fixed_body_comment_indent {
+                    1
+                } else {
+                    missing_indent
+                }, // default indent between block and comment
             );
             match comment {
                 None => {}
@@ -113,13 +114,12 @@ impl<'a> Formatter<'a> {
         let mut paddings = 0usize;
 
         // space_comment_stick_to_body
-        if self.style.space_comment_stick_to_body != 0 {
-            if current.is_comment()
-                && next.is_some()
-                && (next.unwrap().is_directive() || next.unwrap().is_instruction())
-            {
-                paddings += self.style.space_comment_stick_to_body as usize;
-            }
+        if self.style.space_comment_stick_to_body != 0
+            && current.is_comment()
+            && next.is_some()
+            && (next.unwrap().is_directive() || next.unwrap().is_instruction())
+        {
+            paddings += self.style.space_comment_stick_to_body as usize;
         }
 
         // space_block_between
@@ -128,21 +128,17 @@ impl<'a> Formatter<'a> {
             if let ProgramItem::Directive(_, directive, ..) = current {
                 if matches!(directive.directive_type(), DirectiveType::ORIG(..)) {
                     // balabala
-                } else {
-                    if (current.is_directive() || current.is_instruction())
-                        && next.is_some()
-                        && next.unwrap().is_comment()
-                    {
-                        paddings += self.style.space_block_to_comment as usize;
-                    }
-                }
-            } else {
-                if (current.is_directive() || current.is_instruction())
+                } else if (current.is_directive() || current.is_instruction())
                     && next.is_some()
                     && next.unwrap().is_comment()
                 {
                     paddings += self.style.space_block_to_comment as usize;
                 }
+            } else if (current.is_directive() || current.is_instruction())
+                && next.is_some()
+                && next.unwrap().is_comment()
+            {
+                paddings += self.style.space_block_to_comment as usize;
             }
         }
 
@@ -206,15 +202,19 @@ impl FormattedDisplay for ProgramItem {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
-                    labels.is_empty().then_some(0).unwrap_or(style.indent_label),
+                    if labels.is_empty() {
+                        0
+                    } else {
+                        style.indent_label
+                    },
                 );
                 let labels = labels
-                    .into_iter()
+                    .iter()
                     .map(|l| format!("{label_indent}{}", print_label(style, l)))
                     .collect();
                 let mut instruction_indent = "".to_owned();
                 add_indent(&mut instruction_indent, style.indent_instruction);
-                let comment = comment.as_ref().map_or(None, |c| Some(print_comment(c)));
+                let comment = comment.as_ref().map(print_comment);
                 (
                     labels,
                     format!("{instruction_indent}{}", print_instruction(instruction)),
@@ -225,21 +225,28 @@ impl FormattedDisplay for ProgramItem {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
-                    labels.is_empty().then_some(0).unwrap_or(style.indent_label),
+                    if labels.is_empty() {
+                        0
+                    } else {
+                        style.indent_label
+                    },
                 );
                 let labels = labels
-                    .into_iter()
+                    .iter()
                     .map(|l| format!("{label_indent}{}", print_label(style, l)))
                     .collect();
                 let mut directive_indent = "".to_owned();
                 add_indent(
                     &mut directive_indent,
-                    (matches!(directive.directive_type(), DirectiveType::END)
+                    if (matches!(directive.directive_type(), DirectiveType::END)
                         || matches!(directive.directive_type(), DirectiveType::ORIG(..)))
-                    .then_some(0)
-                    .unwrap_or(style.indent_directive),
+                    {
+                        0
+                    } else {
+                        style.indent_directive
+                    },
                 );
-                let comment = comment.as_ref().map_or(None, |c| Some(print_comment(c)));
+                let comment = comment.as_ref().map(print_comment);
                 (
                     labels,
                     format!("{directive_indent}{}", print_directive(directive)),
@@ -250,10 +257,14 @@ impl FormattedDisplay for ProgramItem {
                 let mut label_indent = "".to_owned();
                 add_indent(
                     &mut label_indent,
-                    labels.is_empty().then_some(0).unwrap_or(style.indent_label),
+                    if labels.is_empty() {
+                        0
+                    } else {
+                        style.indent_label
+                    },
                 );
                 let labels = labels
-                    .into_iter()
+                    .iter()
                     .map(|l| format!("{label_indent}{}", print_label(style, l)))
                     .collect();
                 (labels, "".to_owned(), None)
@@ -307,7 +318,7 @@ fn print_instruction(instruction: &Instruction) -> String {
         InstructionType::Trap(hex_address) => hex_address.content().to_owned(),
     };
     if operands.is_empty() {
-        format!("{}", instruction.content())
+        instruction.content().to_string()
     } else {
         format!("{} {}", instruction.content(), operands)
     }
@@ -362,7 +373,7 @@ fn print_directive(directive: &Directive) -> String {
     }
     .to_owned();
     if operands.is_empty() {
-        format!("{}", directive.content())
+        directive.content().to_string()
     } else {
         format!("{} {}", directive.content(), operands)
     }

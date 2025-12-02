@@ -83,24 +83,22 @@ pub fn print_error(filename: &str, source: &str, error: pest::error::Error<Rule>
     // Create notes with additional context
     let mut notes = Vec::new();
 
-    match &error.variant {
-        pest::error::ErrorVariant::ParsingError {
-            positives,
-            negatives,
-        } => {
-            if !positives.is_empty() && !negatives.is_empty() {
-                notes.push(format!(
-                    "Found `{}`, but expected {}",
-                    if error_text.is_empty() {
-                        "???"
-                    } else {
-                        &error_text
-                    },
-                    format_rules(positives)
-                ));
-            }
+    if let pest::error::ErrorVariant::ParsingError {
+        positives,
+        negatives,
+    } = &error.variant
+    {
+        if !positives.is_empty() && !negatives.is_empty() {
+            notes.push(format!(
+                "Found `{}`, but expected {}",
+                if error_text.is_empty() {
+                    "???"
+                } else {
+                    &error_text
+                },
+                format_rules(positives)
+            ));
         }
-        _ => {}
     }
 
     // Create the diagnostic

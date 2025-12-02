@@ -49,7 +49,7 @@ fn main() -> anyhow::Result<()> {
         println!(
             "Formatted {} file{}.",
             count,
-            (count > 1).then_some("s").unwrap_or("")
+            if count > 1 { "s" } else { "" }
         );
     }
 
@@ -75,7 +75,7 @@ fn format_file<'a>(
             print_error(
                 filename.to_string_lossy().into_owned().as_str(),
                 file_content,
-                e,
+                *e,
             );
             None
         }
@@ -227,11 +227,7 @@ fn get_from_cli() -> (FormatStyle, Vec<PathBuf>) {
 
     VERBOSE_MODE.store(matches.get_flag("verbose"), Ordering::Relaxed);
     CHECK_MODE.store(matches.get_flag("check"), Ordering::Relaxed);
-    let style = read_style(
-        matches
-            .get_one::<String>("config-path")
-            .map_or(None, |s| Some(PathBuf::from(s))),
-    );
+    let style = read_style(matches.get_one::<String>("config-path").map(PathBuf::from));
     let file_path = matches
         .get_one::<String>("file")
         .expect("File path is required");
@@ -293,7 +289,7 @@ fn read_style(filepath_opt: Option<PathBuf>) -> FormatStyle {
 
     let path = filepath.as_ref().unwrap();
 
-    match fs::read_to_string(&path) {
+    match fs::read_to_string(path) {
         Ok(content) => match toml::from_str::<Config>(&content) {
             Ok(config) => config_format_style_to_format_style(&DEFAULT_STYLE, config.format_style),
             Err(err) => {

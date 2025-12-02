@@ -1,3 +1,3 @@
-mod lint;
+mod linter;
 
-pub use lint::*;
+pub use linter::*;

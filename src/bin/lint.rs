@@ -96,11 +96,7 @@ fn main() {
         CONFIG_FILENAME_EXTENSION,
         file_path,
     );
-    let style = read_style(
-        matches
-            .get_one::<String>("config-path")
-            .map_or(None, |s| Some(PathBuf::from(s))),
-    );
+    let style = read_style(matches.get_one::<String>("config-path").map(PathBuf::from));
 
     if matches.get_flag("print-config") {
         print_style(&style);
@@ -161,14 +157,14 @@ fn main() {
 }
 
 // print or return ast
-fn check_syntax_error<'a>(filename: &Path, file_content: &str) -> Option<Program> {
+fn check_syntax_error(filename: &Path, file_content: &str) -> Option<Program> {
     match get_ast(file_content) {
         Ok(program) => Some(program),
         Err(e) => {
             print_error(
                 filename.to_string_lossy().into_owned().as_str(),
                 file_content,
-                e,
+                *e,
             );
             None
         }
@@ -191,7 +187,7 @@ fn read_style(filepath_opt: Option<PathBuf>) -> LintStyle {
 
     let path = filepath.as_ref().unwrap();
 
-    match fs::read_to_string(&path) {
+    match fs::read_to_string(path) {
         Ok(content) => match toml::from_str::<Config>(&content) {
             Ok(config) => config_lint_style_to_lint_style(&DEFAULT_STYLE, config.lint_style),
             Err(err) => {

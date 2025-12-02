@@ -7,13 +7,13 @@ use pest_derive::Parser;
 #[grammar = "lc3.pest"]
 struct LC3Parser;
 
-pub fn get_ast(content: &str) -> Result<Program, pest::error::Error<Rule>> {
+pub fn get_ast(content: &str) -> Result<Program, Box<pest::error::Error<Rule>>> {
     match LC3Parser::parse(Rule::Program, content) {
         Ok(pairs) => {
             let program = parse_ast(pairs.into_iter().next().unwrap());
             let program = StandardTransform::new(true, content).transform(program);
             Ok(program)
         }
-        Err(e) => Err(e),
+        Err(e) => Err(Box::new(e)),
     }
 }

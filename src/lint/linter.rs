@@ -105,7 +105,7 @@ static SCREAMING_SNAKE: Lazy<Regex> =
 impl StyleCheckerVisitor {
     fn check_label(&self, label: &str) -> (Result<(), Option<CaseStyle>>, Result<(), ()>) {
         let case_error = Self::check_keyword_style(
-            label.strip_suffix(":").unwrap_or_else(|| label),
+            label.strip_suffix(":").unwrap_or(label),
             &self.style.label_style,
         );
         let colon_error = match label.ends_with(":") {
@@ -135,6 +135,7 @@ impl StyleCheckerVisitor {
         Self::check_keyword_style(directive, &self.style.directive_style)
     }
 
+    #[allow(clippy::if_same_then_else)]
     fn check_keyword_style(keyword: &str, case_style: &CaseStyle) -> Result<(), Option<CaseStyle>> {
         let found_style = match Self::get_identifier_style(keyword) {
             None => {
@@ -145,7 +146,7 @@ impl StyleCheckerVisitor {
         if &found_style == case_style {
             Ok(())
         }
-        // snakecase is a subset of lower camelcase without _
+        // snakecase is a subset of a lower camelcase without _
         else if found_style == CaseStyle::SnakeCase
             && (!keyword.contains("_"))
             && *case_style == CaseStyle::LowerCamelCase
@@ -176,7 +177,7 @@ impl StyleCheckerVisitor {
         colon_error: Result<(), ()>,
     ) -> Error {
         Error {
-            case_style_error: case_error.map_err(|e| (expected_case.clone(), e)),
+            case_style_error: case_error.map_err(|e| (*expected_case, e)),
             colon_style_error: colon_error,
             span: label.span().clone(),
         }
@@ -216,7 +217,7 @@ impl ProgramItemVisitor for StyleCheckerVisitor {
         match self.check_instruction(instruction.content()) {
             Ok(_) => {}
             Err(err) => errors.push(Error {
-                case_style_error: Err((self.style.instruction_style.clone(), err)),
+                case_style_error: Err((self.style.instruction_style, err)),
                 colon_style_error: Ok(()),
                 span: instruction.span().clone(),
             }),
@@ -244,7 +245,7 @@ impl ProgramItemVisitor for StyleCheckerVisitor {
             Ok(_) => {}
             Err(error) => {
                 errors.push(Error {
-                    case_style_error: Err((self.style.directive_style.clone(), error)),
+                    case_style_error: Err((self.style.directive_style, error)),
                     colon_style_error: Ok(()),
                     span: directive.span().clone(),
                 });
@@ -274,27 +275,21 @@ mod test {
     fn test_true(style: LintStyle, content: &str) {
         let ast = get_ast(content);
         assert!(ast.is_ok());
-        match ast {
-            Ok(program) => {
-                let c = Linter::new(style, program).check();
-                if c.is_err() {
-                    println!("{:?}", c.as_ref().err().unwrap());
-                }
-                assert!(c.is_ok());
+        if let Ok(program) = ast {
+            let c = Linter::new(style, program).check();
+            if c.is_err() {
+                println!("{:?}", c.as_ref().err().unwrap());
             }
-            Err(_) => {}
+            assert!(c.is_ok());
         }
     }
 
     fn test_false(style: LintStyle, content: &str) {
         let ast = get_ast(content);
         assert!(ast.is_ok());
-        match ast {
-            Ok(program) => {
-                let c = Linter::new(style, program).check();
-                assert!(c.is_err());
-            }
-            Err(_) => {}
+        if let Ok(program) = ast {
+            let c = Linter::new(style, program).check();
+            assert!(c.is_err());
         }
     }
 
@@ -322,10 +317,10 @@ mod test {
         let content_false1 = r#".OrIG x3000 .EnD"#;
         let content_false2 = r#".orig x3000 .end"#;
         let content_false3 = r#".Orig x3000 .End"#;
-        test_true(style.clone(), content_true);
-        test_false(style.clone(), content_false1);
-        test_false(style.clone(), content_false2);
-        test_false(style.clone(), content_false3);
+        test_true(style, content_true);
+        test_false(style, content_false1);
+        test_false(style, content_false2);
+        test_false(style, content_false3);
     }
 
     #[test]

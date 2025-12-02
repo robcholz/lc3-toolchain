@@ -4,7 +4,7 @@ use std::{env, fs};
 
 pub fn get_relative_path(path: &Path) -> PathBuf {
     match env::current_dir() {
-        Ok(root) => path.strip_prefix(root).unwrap_or_else(|_| path),
+        Ok(root) => path.strip_prefix(root).unwrap_or(path),
         Err(_) => path,
     }
     .to_path_buf()

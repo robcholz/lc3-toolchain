@@ -181,7 +181,6 @@ pub fn parse_ast(pair: Pair<Rule>) -> Program {
     Program {
         items: pair
             .into_inner()
-            .into_iter()
             .map_while(|p| parse_program_item(p))
             .collect(),
     }
@@ -216,11 +215,11 @@ fn parse_label(pair: Pair<Rule>) -> Label {
 
 fn parse_instruction(pair: Pair<Rule>) -> Instruction {
     assert_eq!(pair.as_rule(), Rule::Instruction);
-    let mut inner = pair.into_inner().into_iter();
+    let mut inner = pair.into_inner();
     let instruction = inner.next();
     assert!(instruction.is_some());
     let instruction = instruction.unwrap();
-    let mut instruction_line = instruction.clone().into_inner().into_iter();
+    let mut instruction_line = instruction.clone().into_inner();
     let true_instruction = instruction_line.next();
     assert!(true_instruction.is_some());
     let true_instruction = true_instruction.unwrap();
@@ -430,10 +429,10 @@ fn parse_instruction(pair: Pair<Rule>) -> Instruction {
 
 fn parse_directive(pair: Pair<Rule>) -> Directive {
     assert_eq!(pair.as_rule(), Rule::Directive);
-    let mut inner = pair.into_inner().into_iter();
+    let mut inner = pair.into_inner();
     let directive_line = inner.next();
     assert!(directive_line.is_some());
-    let mut directive_line = directive_line.unwrap().into_inner().into_iter();
+    let mut directive_line = directive_line.unwrap().into_inner();
     let directive = directive_line.next();
     assert!(directive.is_some());
     let directive = directive.unwrap();
@@ -529,7 +528,7 @@ fn parse_label_reference(pair: Pair<Rule>) -> LabelReference {
     }
 }
 
-impl<'a> From<pest::Span<'a>> for Span {
+impl From<pest::Span<'_>> for Span {
     fn from(value: pest::Span) -> Self {
         Span {
             start: value.start(),

@@ -29,7 +29,7 @@ enum RawProgramItem {
     Comment(Comment),
     Instruction(Vec<Label>, Instruction, Option<Comment>),
     Directive(Vec<Label>, Directive, Option<Comment>),
-    EOL(Vec<Label>),
+    Eol(Vec<Label>),
 }
 
 #[derive(Debug, Clone)]
@@ -61,11 +61,11 @@ impl<'a> StandardTransform<'a> {
             while let Some(item) = self.label_buffer.pop() {
                 labels.push(item);
             }
-            labelled_items.push(Some(RawProgramItem::EOL(labels)));
+            labelled_items.push(Some(RawProgramItem::Eol(labels)));
         }
         let labelled_items: Vec<_> = labelled_items
             .into_iter()
-            .filter_map(|p| p)
+            .flatten()
             .map(|p| self.add_line_info(p))
             .collect();
         Program {
@@ -73,9 +73,9 @@ impl<'a> StandardTransform<'a> {
                 let mut res = vec![];
                 for (index, current) in labelled_items.iter().enumerate() {
                     let next = labelled_items.get(index + 1);
-                    res.push(self.hybrid_comment(current.clone(), next.map(|i| i.clone())));
+                    res.push(self.hybrid_comment(current.clone(), next.cloned()));
                 }
-                res.into_iter().filter_map(|i| i).collect()
+                res.into_iter().flatten().collect()
             } else {
                 labelled_items
             },
@@ -125,7 +125,7 @@ impl<'a> StandardTransform<'a> {
                 let lc = self.look_table.get_line_and_column(directive.span());
                 ProgramItem::Directive(label, directive, comment, lc)
             }
-            RawProgramItem::EOL(label) => ProgramItem::EOL(label),
+            RawProgramItem::Eol(label) => ProgramItem::EOL(label),
         }
     }
 
