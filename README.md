@@ -1,79 +1,61 @@
 # lc3-toolchain
 
-![Version](https://img.shields.io/badge/version-0.3.2-blue)
-![Edition](https://img.shields.io/badge/edition-2024-orange)
+![Version](https://img.shields.io/badge/version-0.3.2-blue) ![Edition](https://img.shields.io/badge/edition-2024-orange)
+
+Fast LC-3 assembly formatter + linter built for ECE109 but ready for any LC-3 codebase. Ships two binaries: `lc3fmt` (
+formatter) and `lc3lint` (style linter) with friendly diagnostics.
 
 <div style="text-align: center;">
     <img src="doc/check_mode.png" alt="Description" width="500">
 </div>
 
-LC-3 Assembly Toolchain, this was originally designed for ECE109 Spring 2025, but can also be used anywhere else.
+## Features
 
-## Overview
+- LC-3–aware parser that understands labels, directives, comments, and spacing rules
+- Opinionated formatting with diff-able `--check` mode for CI/pre-commit
+- Style linting for label/instruction/directive casing and colon rules
+- Configurable via TOML; auto-discovers configs up the directory tree
+- Inline diffs for formatting and codespan-highlighted lint diagnostics
 
-`lc3-toolchain` contains a code `formatter` and `lint` tools specifically built for LC-3 assembly language.
-
-## Installation
-
-Download from release.
-
-Or:
-Cargo
+## Quick Start
 
 ```bash
+# Install (requires Rust toolchain)
 cargo install lc3-toolchain
+
+# Format a file or directory
+lc3fmt path/to/file.asm
+lc3fmt --check src/         # exits 1 if reformatting is needed
+
+# Lint for style issues
+lc3lint path/to/file.asm
 ```
 
-## Doc
+## Install
 
-### lc3fmt
+- From crates.io: `cargo install lc3-toolchain`
+- Or download a prebuilt binary from the Releases page and place it on your `PATH`
+- Requires Rust 1.79+ (edition 2024). Tested on macOS and Linux.
 
-Format lc3 code.
+## lc3fmt (formatter)
 
-#### Usage
+- Usage: `lc3fmt <file_or_directory> [--check] [--config-path <path>] [--print-config] [--verbose]`
+- Exit codes: `0` success/no diff (check mode) • `1` reformat needed or I/O error
+- Config discovery: looks for `lc3-format.toml` starting at `--config-path` (or CWD) and walking parents
 
-Basic usage:
+**Before/after**
 
-```bash
-lc3fmt <file_or_directory>
+```asm
+; before
+LOOP    ADD R1,R1,#1    ;inc
+        BRnzp LOOP
+
+; after (default style)
+LOOP        ADD     R1, R1, #1 ; inc
+            BRnzp   LOOP
 ```
 
-This will format the specified LC-3 assembly file or all assembly files in the given directory.
-
-#### Command-line Options
-
-##### `-c, --check`
-
-Run in 'check' mode. Exits with 0 if input is formatted correctly.
-Exits with 1 and prints a diff if formatting is required.
-
-Validates files for proper formatting without making changes.
-Useful for CI/CD pipelines or pre-commit hooks to ensure code style compliance.
-Returns a non-zero exit code if any files need formatting.
-
-<img src="doc/check_mode.png" alt="Description" width="500">
-
-##### `--config-path <path>`
-
-Specifies a custom location for the configuration file. The tool will search for a `lc3-format.toml` file starting from
-this path and moving up through parent directories. The configuration file controls formatting rules like indentation
-style, comment alignment, and label positioning.
-
-##### `--print-config`
-
-Outputs the current configuration settings to standard output. Helpful for creating your own custom configuration file
-by using this output as a starting point.
-
-<img src="doc/print_config.png" alt="Description" width="500">
-
-##### `--verbose`
-
-Enables detailed output during the formatting process. Shows information about each file being processed, and any issues
-encountered.
-
-#### Configuration
-
-Create a `lc3-format.toml` file to customize the linter's behavior:
+**Config sample (`lc3-format.toml`)**
 
 ```toml
 [format-style]
@@ -90,48 +72,15 @@ fixed-body-comment-indent = false
 directive-label-wrap = false
 ```
 
-### lc3lint
+- `--print-config` dumps the effective defaults (see `doc/print_config.png`).
 
-Static analyzer and linter for LC-3 assembly code.
+## lc3lint (style linter)
 
-#### Usage
+- Usage: `lc3lint <file_or_directory> [--config-path <path>] [--print-config] [--verbose]`
+- Exit codes: `0` clean • `1` style violations or parse errors
+- Rules: casing for labels/instructions/directives and whether labels must end with `:`
 
-Basic usage:
-
-```bash
-lc3lint <file_or_directory>
-```
-
-This will analyze the specified LC-3 assembly file or all assembly files in the given directory for potential issues.
-
-#### Command-line Options
-
-##### `--config-path <path>`
-
-Specifies a custom location for the configuration file. The tool will search for a `lc3-lint.toml` file starting from
-this path and moving up through parent directories. The configuration file controls linting rules, severity levels, and
-ignored warnings.
-
-##### `--print-config`
-
-Outputs the current configuration settings to standard output. Helpful for creating your own custom configuration file
-by using this output as a starting point.
-
-##### `--verbose`
-
-Enables detailed output during the linting process. Shows information about each file being processed, and any issues
-encountered.
-
-#### Error Categories
-
-lc3lint detects several categories of potential issues:
-
-- **Syntax errors**: Invalid instructions or directives
-- **Style issues**: Inconsistent formatting or naming conventions
-
-#### Configuration
-
-Create a `lc3-lint.toml` file to customize the linter's behavior:
+**Config sample (`lc3-lint.toml`)**
 
 ```toml
 [lint-style]
@@ -141,15 +90,15 @@ instruction-style = "ScreamingSnakeCase"
 directive-style = "ScreamingSnakeCase"
 ```
 
-#### Exit Codes
+## CI / Hooks
 
-- **0**: No issues found
-- **1**: Issues found
+- Pre-commit: `lc3fmt --check .`
+- CI: run both `lc3fmt --check .` and `lc3lint .` to fail on formatting or style drift.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome—feel free to open an issue or submit a PR.
 
 ## License
 
-GPL-v3
+GPL-3.0-only
